@@ -1,0 +1,98 @@
+Sound pack downloaded from Freesound.org
+----------------------------------------
+
+This pack of sounds contains sounds by Corsica_S ( http://www.freesound.org/people/Corsica_S/  )
+You can find this pack online at: http://www.freesound.org/people/Corsica_S/packs/4372/
+
+
+License details
+---------------
+
+Sampling+: http://creativecommons.org/licenses/sampling+/1.0/
+Creative Commons 0: http://creativecommons.org/publicdomain/zero/1.0/
+Attribution: http://creativecommons.org/licenses/by/3.0/
+Attribution Noncommercial: http://creativecommons.org/licenses/by-nc/3.0/
+
+
+Sounds in this pack
+-------------------
+
+  * 69170__Corsica_S__oh.aiff
+    * url: http://www.freesound.org/people/Corsica_S/sounds/69170/
+    * license: Attribution
+  * 69169__Corsica_S__o_clock.aiff
+    * url: http://www.freesound.org/people/Corsica_S/sounds/69169/
+    * license: Attribution
+  * 69168__Corsica_S__50.aiff
+    * url: http://www.freesound.org/people/Corsica_S/sounds/69168/
+    * license: Attribution
+  * 69167__Corsica_S__40.aiff
+    * url: http://www.freesound.org/people/Corsica_S/sounds/69167/
+    * license: Attribution
+  * 69166__Corsica_S__30.aiff
+    * url: http://www.freesound.org/people/Corsica_S/sounds/69166/
+    * license: Attribution
+  * 67757__Corsica_S__8.wav
+    * url: http://www.freesound.org/people/Corsica_S/sounds/67757/
+    * license: Attribution
+  * 67758__Corsica_S__9.wav
+    * url: http://www.freesound.org/people/Corsica_S/sounds/67758/
+    * license: Attribution
+  * 67755__Corsica_S__6.wav
+    * url: http://www.freesound.org/people/Corsica_S/sounds/67755/
+    * license: Attribution
+  * 67756__Corsica_S__7.wav
+    * url: http://www.freesound.org/people/Corsica_S/sounds/67756/
+    * license: Attribution
+  * 67754__Corsica_S__5.wav
+    * url: http://www.freesound.org/people/Corsica_S/sounds/67754/
+    * license: Attribution
+  * 67753__Corsica_S__4.wav
+    * url: http://www.freesound.org/people/Corsica_S/sounds/67753/
+    * license: Attribution
+  * 67751__Corsica_S__20.wav
+    * url: http://www.freesound.org/people/Corsica_S/sounds/67751/
+    * license: Attribution
+  * 67752__Corsica_S__3.wav
+    * url: http://www.freesound.org/people/Corsica_S/sounds/67752/
+    * license: Attribution
+  * 67749__Corsica_S__19.wav
+    * url: http://www.freesound.org/people/Corsica_S/sounds/67749/
+    * license: Attribution
+  * 67750__Corsica_S__2.wav
+    * url: http://www.freesound.org/people/Corsica_S/sounds/67750/
+    * license: Attribution
+  * 67748__Corsica_S__18.wav
+    * url: http://www.freesound.org/people/Corsica_S/sounds/67748/
+    * license: Attribution
+  * 67747__Corsica_S__17.wav
+    * url: http://www.freesound.org/people/Corsica_S/sounds/67747/
+    * license: Attribution
+  * 67746__Corsica_S__16.wav
+    * url: http://www.freesound.org/people/Corsica_S/sounds/67746/
+    * license: Attribution
+  * 67745__Corsica_S__15.wav
+    * url: http://www.freesound.org/people/Corsica_S/sounds/67745/
+    * license: Attribution
+  * 67744__Corsica_S__14.wav
+    * url: http://www.freesound.org/people/Corsica_S/sounds/67744/
+    * license: Attribution
+  * 67743__Corsica_S__13.wav
+    * url: http://www.freesound.org/people/Corsica_S/sounds/67743/
+    * license: Attribution
+  * 67741__Corsica_S__11.wav
+    * url: http://www.freesound.org/people/Corsica_S/sounds/67741/
+    * license: Attribution
+  * 67742__Corsica_S__12.wav
+    * url: http://www.freesound.org/people/Corsica_S/sounds/67742/
+    * license: Attribution
+  * 67740__Corsica_S__10.wav
+    * url: http://www.freesound.org/people/Corsica_S/sounds/67740/
+    * license: Attribution
+  * 67739__Corsica_S__1.wav
+    * url: http://www.freesound.org/people/Corsica_S/sounds/67739/
+    * license: Attribution
+  * 67738__Corsica_S__0.wav
+    * url: http://www.freesound.org/people/Corsica_S/sounds/67738/
+    * license: Attribution
+
