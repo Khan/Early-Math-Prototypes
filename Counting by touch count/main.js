@@ -3,6 +3,7 @@
 /* 
 
 Counting by touch count
+	built on Prototope @cf00c1f
 
 This little interactive explores mapping the number of fingers touching the screen onto numerals. It grazes on concepts of 1-to-1 counting and the social knowledge of numerals (digits and words), but not all that intently.
 
