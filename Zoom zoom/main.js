@@ -17,46 +17,115 @@ touchLayer.frame = Layer.root.bounds
 
 // Global thangs
 var bgColor = new Color({hex: "CCE9FF"})
+var originalZoomedSize = new Size({width: 100, height: 75})
+
+var zoomLayerIsOpen = false
 
 var zoomLayer = new Layer()
 zoomLayer.backgroundColor = bgColor
-zoomLayer.size = new Size({width: 100, height: 75})
-zoomLayer.cornerRadius = 35
-zoomLayer.x = 200
-zoomLayer.y = 200
+zoomLayer.size = originalZoomedSize
+zoomLayer.cornerRadius = 5
+zoomLayer.position = touchLayer.position
+
+// The zoom layer has the same asepct ratio as the display, so we get the scale
+var scale = touchLayer.width / zoomLayer.width
+
 
 zoomLayer.gestures = [
 	new TapGesture({
 		handler: function() {
+			if (zoomLayerIsOpen) {
+				closeZoomView()
+			} else {
+				openZoomView(undefined)
+			}
 			
-			// Corner radius
-			zoomLayer.animators.cornerRadius.target = 0
-			var cornerVelocity = 1
-			zoomLayer.animators.cornerRadius.velocity = cornerVelocity//new Point({x: cornerVelocity, y: cornerVelocity})
-			zoomLayer.animators.cornerRadius.springBounciness = 0
-			zoomLayer.animators.cornerRadius.springSpeed = 0
-			
-			// Scale
-			var xScale = touchLayer.width / zoomLayer.width
-			var yScale = touchLayer.height / zoomLayer.height
-			
-			zoomLayer.animators.scale.target = new Point({x: xScale, y: yScale})
-			var velocity = tunable({default: 121.71, name: "Velocity", min: 0, max: 500})
-			zoomLayer.animators.scale.velocity = new Point({x: velocity, y: velocity})
-			zoomLayer.animators.scale.springSpeed = tunable({default: 2.42, name: "Speed", min: 0, max: 30})
-			zoomLayer.animators.scale.springBounciness = tunable({default: 10.16, name: "Bounciness", min: 0, max: 30})
-			
-			
-			// Position
-			zoomLayer.animators.position.target = touchLayer.position
-			
-			
-			zoomLayer.animators.scale.completionHandler = function() {
-				zoomLayer.scale = 1.0
-				zoomLayer.bounds = touchLayer.bounds
+		}
+	}),
+	
+	new PinchGesture({
+		handler: function(phase, sequence) {
+			var pinchScale = sequence.currentSample.scale
+			zoomLayer.scale = pinchScale
+
+			if (phase === ContinuousGesturePhase["Ended"]) {
+				if (pinchScale < scale/3.0) {
+					closeZoomView()
+				} else {
+					openZoomView(sequence.currentSample.velocity)
+				}
 			}
 		}
 	})
 ]
+
+function openZoomView(pinchVelocity) {
+	// Corner radius
+	zoomLayer.animators.cornerRadius.target = 0
+	var cornerVelocity = 1
+	zoomLayer.animators.cornerRadius.velocity = cornerVelocity//new Point({x: cornerVelocity, y: cornerVelocity})
+	zoomLayer.animators.cornerRadius.springBounciness = 0
+	zoomLayer.animators.cornerRadius.springSpeed = 0
+	
+	// Scale
+	var yScale = touchLayer.height / zoomLayer.height
+	
+	zoomLayer.animators.scale.target = new Point({x: scale, y: scale})
+	
+	
+	var velocity = tunable({default: 121.71, name: "Velocity", min: 0, max: 500})
+	if (pinchVelocity !== undefined) {
+		velocity = pinchVelocity
+	}
+	zoomLayer.animators.scale.velocity = new Point({x: velocity, y: velocity})
+	zoomLayer.animators.scale.springSpeed = tunable({default: 2.42, name: "Speed", min: 0, max: 30})
+	zoomLayer.animators.scale.springBounciness = tunable({default: 10.16, name: "Bounciness", min: 0, max: 30})
+	
+	
+	// Position
+	zoomLayer.animators.position.target = touchLayer.position
+	
+	
+	zoomLayer.animators.scale.completionHandler = function() {
+		zoomLayer.scale = 1.0
+		zoomLayer.bounds = touchLayer.bounds
+	}
+	
+	zoomLayerIsOpen = true
+}
+
+
+function closeZoomView() {
+	
+	// Corner radius
+	zoomLayer.cornerRadius = 5
+	// var cornerVelocity = 1
+	// zoomLayer.animators.cornerRadius.velocity = cornerVelocity//new Point({x: cornerVelocity, y: cornerVelocity})
+	// zoomLayer.animators.cornerRadius.springBounciness = 0
+	// zoomLayer.animators.cornerRadius.springSpeed = 0
+	
+	
+	var inverseScale = 1.0 / scale
+	zoomLayer.animators.scale.target = new Point({x: inverseScale, y: inverseScale})
+	
+	
+	var velocity = tunable({default: 121.71, name: "Velocity", min: 0, max: 500})
+	zoomLayer.animators.scale.velocity = new Point({x: velocity, y: velocity})
+	zoomLayer.animators.scale.springSpeed = tunable({default: 2.42, name: "Speed-down", min: 0, max: 30})
+	zoomLayer.animators.scale.springBounciness = tunable({default: 7.16, name: "Bounciness-down", min: 0, max: 30})
+	
+	
+	// Position
+	zoomLayer.animators.position.target = touchLayer.position
+	
+	
+	zoomLayer.animators.scale.completionHandler = function() {
+		zoomLayer.size = originalZoomedSize
+		zoomLayer.scale = 1.0
+	}
+	
+	zoomLayerIsOpen = false
+
+}
 
 
