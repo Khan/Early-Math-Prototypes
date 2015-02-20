@@ -21,6 +21,9 @@ var originalZoomedSize = new Size({width: 100, height: 75})
 
 var zoomLayerIsOpen = false
 
+
+var zoomedImageLayer = new Layer({imageName: "zoomed"})
+
 var zoomLayer = new Layer()
 zoomLayer.backgroundColor = bgColor
 zoomLayer.size = originalZoomedSize
@@ -29,6 +32,12 @@ zoomLayer.position = touchLayer.position
 
 // The zoom layer has the same asepct ratio as the display, so we get the scale
 var scale = touchLayer.width / zoomLayer.width
+
+// scale down the image layer
+// zoomedImageLayer.scale = 1.0/scale
+zoomedImageLayer.parent = zoomLayer
+zoomedImageLayer.size = originalZoomedSize
+zoomedImageLayer.moveToCenterOfParentLayer()
 
 
 zoomLayer.gestures = [
@@ -88,6 +97,7 @@ function openZoomView(pinchVelocity) {
 	zoomLayer.animators.scale.completionHandler = function() {
 		zoomLayer.scale = 1.0
 		zoomLayer.bounds = touchLayer.bounds
+		showTappyLayer()
 	}
 	
 	zoomLayerIsOpen = true
@@ -122,6 +132,7 @@ function closeZoomView(pinchVelocity) {
 	zoomLayer.animators.scale.completionHandler = function() {
 		zoomLayer.size = originalZoomedSize
 		zoomLayer.scale = 1.0
+		hideTappyLayer()
 	}
 	
 	zoomLayerIsOpen = false
@@ -129,3 +140,86 @@ function closeZoomView(pinchVelocity) {
 }
 
 
+function showTappyLayer() {
+	tappyLayer.parent = zoomLayer
+	tappyLayer.moveToCenterOfParentLayer()
+	
+	zoomedImageLayer.parent = undefined
+}
+
+
+function hideTappyLayer() {
+	zoomedImageLayer.parent = zoomLayer
+	zoomedImageLayer.frame = zoomLayer.bounds
+	zoomedImageLayer.moveToCenterOfParentLayer()
+	tappyLayer.parent = undefined
+}
+
+
+function setupTappyLayer() {
+	var layer = new Layer()
+	layer.backgroundColor = bgColor
+	layer.frame = touchLayer.bounds
+	
+	// 7 col, 5 row
+	for (var row = 0; row < 5; row++) {
+		for (var col = 0; col < 7; col++) {
+			var square = gimmeSquare()
+			var tapMe = gimmeTapMe()
+			
+			square.parent = layer
+			tapMe.parent = layer
+			
+			var xFirstOffset = 42
+			var xInterCellMargin = 40
+			
+			var yFirstOffset = 40
+			var yInterCellMargin = 40
+			var rowHeight = 105
+			
+			square.frameMinX = xFirstOffset + (col * square.width) + ((col) * xInterCellMargin)
+			square.frameMinY = yFirstOffset + (row * rowHeight) + ((row) * yInterCellMargin)
+			
+			tapMe.x = square.x
+			tapMe.moveBelowSiblingLayer({siblingLayer: square, margin: 0})
+		}
+	}
+	return layer
+}
+
+
+function gimmeSquare() {
+	var square = new Layer()
+	var blue = new Color({hex: "4A90E2"})
+	square.backgroundColor = blue
+	square.cornerRadius = 5
+	square.size = originalZoomedSize
+	
+	// tap handler...
+	square.gestures = [
+		new TapGesture({handler: function() {
+			square.animators.backgroundColor.target = new Color({hex: "D0021B"})
+			square.animators.backgroundColor.springBounciness = 0
+			
+			afterDuration(2, function() {
+				square.animators.backgroundColor.target = blue
+			})
+		}})
+	]
+	
+	return square
+}
+
+
+function gimmeTapMe() {
+	var text = new TextLayer()
+	text.text = "tap me"
+	text.fontName = "Avenir"
+	text.fontSize = 25
+	text.textColor = new Color({hex: "4A4A4A"})
+	
+	return text
+}
+
+var tappyLayer = setupTappyLayer()
+hideTappyLayer()
