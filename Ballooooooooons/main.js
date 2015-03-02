@@ -1,3 +1,4 @@
+"use strict;"
 /* 
 
 Balloons floatin, as they do.
@@ -5,6 +6,8 @@ Balloons floatin, as they do.
 
 
 Most of this is learning from Nefaur's excellent ForcePull demo...physics feels like magic to me.
+
+This is unfinished because Jason is having trouble with the physics and for now it's not worth the time when there are so many other mathy things to play with! but may revisit in the future. but let's be honest we all know how true that statement usually is with software ok -jb
 */
 
 Layer.root.backgroundColor = new Color({hue: (44.0/360.0), saturation: 0.1, brightness: 1.0})
