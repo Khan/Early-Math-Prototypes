@@ -10,7 +10,7 @@ Sing through your fingers!
 
 Weaknesses right now:
 	- my voice
-	- what do we do for > 8?
+	- what do we do for > 8? also there is a bug. 
 
 Future directions:
 	- try the sound of two voices singing two, three voices singing three?
