@@ -2,25 +2,23 @@
 
 /* 
 
-Singing through touch count
-	riffing off of Counting by touch count
+Counting by touch count
 	built on Prototope @cf00c1f
 
-Sing through your fingers! 
+This little interactive explores mapping the number of fingers touching the screen onto numerals. It grazes on concepts of 1-to-1 counting and the social knowledge of numerals (digits and words), but not all that intently.
 
 Weaknesses right now:
-	- my voice
-	- what do we do for > 8?
+	- I want to give the student a bit of slop on touchesBegan (if they're trying to touch with four fingers, I don't want to require that they all arrive in the same touch frame), but creating slop adds latency.
+	- the mapping between number and color breaks down if you start lifint touches out of order
+	- not interesting enough, structure doesn't really reward play past 15 seconds
 
 Future directions:
-	- try the sound of two voices singing two, three voices singing three?
-
-Things to learn from this:
-	– do the notes change the learner's incentive to put 3 fingers down right away to get that note?
+	- build something with the numbers?
+	- use fingers-as-numbers as input modality? call and response?
 
 */
 
-Layer.root.backgroundColor = new Color({hue: 0.0, saturation: 0.0, brightness: 1.0})
+Layer.root.backgroundColor = new Color({hue: 0.5, saturation: 0.8, brightness: 0.15})
 
 // TODO: you currently can't attach touch handlers to the root layer. oops.
 var touchLayer = new Layer()
@@ -28,56 +26,42 @@ touchLayer.frame = Layer.root.bounds
 
 var touchesToCircleLayers = {}
 var numbersToNumberLayers = {}
-var touchLayers = [];
-var kacolors = [];
+var touchLayers = []
 
 var numbersToSounds = {}
-for (var i = 1; i <= 8; i++) {
+for (var i = 1; i <= 11; i++) {
 	numbersToSounds[i] = new Sound({name: i.toString()})
 }
 var lastNumberSpoken = undefined
-
-kacolors[0] = new Color({hue: 0.78, saturation: 0.41, brightness: 0.61})
-kacolors[1] = new Color({hue: 0.96, saturation: 0.60, brightness: 0.71})
-kacolors[2] = new Color({hue: 0.01, saturation: 0.66, brightness: 0.98})
-kacolors[3] = new Color({hue: 0.08, saturation: 0.67, brightness: 0.91})
-kacolors[4] = new Color({hue: 0.28, saturation: 0.55, brightness: 0.72})
-kacolors[5] = new Color({hue: 0.45, saturation: 0.60, brightness: 0.78})
-kacolors[6] = new Color({hue: 0.53, saturation: 0.67, brightness: 0.79})
-kacolors[7] = new Color({hue: 0.57, saturation: 0.41, brightness: 0.58})
-
 
 var z = 0
 touchLayer.touchesBeganHandler = function(touchSequences) {
 	for (var index in touchSequences) {
 		var touchSequence = touchSequences[index]
 
-		if (touchLayers.length < 8) {
+		var number = touchLayers.length + 1
+		z += 1
 
-			var number = touchLayers.length + 1
-			z += 1
+		var touchCircleLayer = new Layer()
+		touchCircleLayer.position = touchSequence.currentSample.globalLocation
+		touchCircleLayer.width = touchCircleLayer.height = 50
+		touchCircleLayer.cornerRadius = touchCircleLayer.width / 2.0
+		touchCircleLayer.backgroundColor = colorForNumber(number)
+		touchCircleLayer.zPosition = z
+		touchCircleLayer.userInteractionEnabled = false
+		touchesToCircleLayers[touchSequence.id] = touchCircleLayer
+		touchLayers.push(touchCircleLayer)
 
-			var touchCircleLayer = new Layer()
-			touchCircleLayer.position = touchSequence.currentSample.globalLocation
-			touchCircleLayer.width = touchCircleLayer.height = 50
-			touchCircleLayer.cornerRadius = touchCircleLayer.width / 2.0
-			touchCircleLayer.backgroundColor = kacolors[touchLayers.length]
-			touchCircleLayer.zPosition = z
-			touchCircleLayer.userInteractionEnabled = false
-			touchesToCircleLayers[touchSequence.id] = touchCircleLayer
-			touchLayers.push(touchCircleLayer)
+		touchCircleLayer.animators.scale.target = new Point({x: 4, y: 4})
+		var velocity = tunable({default: 121.71, name: "Velocity", min: 0, max: 500})
+		touchCircleLayer.animators.scale.velocity = new Point({x: velocity, y: velocity})
+		touchCircleLayer.animators.scale.springSpeed = tunable({default: 2.42, name: "Speed", min: 0, max: 30})
+		touchCircleLayer.animators.scale.springBounciness = tunable({default: 10.16, name: "Bounciness", min: 0, max: 30})
 
-			touchCircleLayer.animators.scale.target = new Point({x: 4, y: 4})
-			var velocity = tunable({default: 121.71, name: "Velocity", min: 0, max: 500})
-			touchCircleLayer.animators.scale.velocity = new Point({x: velocity, y: velocity})
-			touchCircleLayer.animators.scale.springSpeed = tunable({default: 2.42, name: "Speed", min: 0, max: 30})
-			touchCircleLayer.animators.scale.springBounciness = tunable({default: 10.16, name: "Bounciness", min: 0, max: 30})
-
-			var numberLayer = createNumberLayer(number)
-			numberLayer.position = touchCircleLayer.position
-			numberLayer.animators.position.target = positionForNumberLayer(number)
-			numbersToNumberLayers[number] = numberLayer
-		}
+		var numberLayer = createNumberLayer(number)
+		numberLayer.position = touchCircleLayer.position
+		numberLayer.animators.position.target = positionForNumberLayer(number)
+		numbersToNumberLayers[number] = numberLayer
 	}
 
 	scheduleNumberSpeech()
@@ -141,7 +125,7 @@ function positionForNumberLayer(number) {
 
 function createNumberLayer(number) {
 	var numberLayer = new TextLayer()
-	numberLayer.textColor = kacolors[number-1]
+	numberLayer.textColor = colorForNumber(number)
 	numberLayer.fontName = "Avenir-Heavy"
 	numberLayer.fontSize = 95
 	numberLayer.text = number.toString()
@@ -157,4 +141,3 @@ function createNumberLayer(number) {
 	]
 	return numberLayer
 }
-
