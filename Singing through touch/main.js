@@ -27,7 +27,7 @@ var touchLayer = new Layer()
 touchLayer.frame = Layer.root.bounds
 
 var touchesToCircleLayers = {}
-var numbersToNumberLayers = {}
+var numbersToNumberLayers = {} 
 var touchLayers = [];
 var kacolors = [];
 
@@ -85,30 +85,34 @@ touchLayer.touchesBeganHandler = function(touchSequences) {
 }
 
 touchLayer.touchMovedHandler = function(touchSequence) {
-	touchesToCircleLayers[touchSequence.id].position = touchSequence.currentSample.globalLocation
+	if (touchesToCircleLayers[touchSequence.id] != undefined) {
+		touchesToCircleLayers[touchSequence.id].position = touchSequence.currentSample.globalLocation
+	}	
 }
 
 touchLayer.touchEndedHandler = touchLayer.touchCancelledHandler = function(touchSequence) {
 	var number = touchLayers.length
 	var circleLayer = touchesToCircleLayers[touchSequence.id]
-	var numberLayer = numbersToNumberLayers[number]
-	var animateLayerOut = function(layer) {
-		layer.animators.scale.target = new Point({x: 0, y: 0})
-		layer.animators.scale.velocity = new Point({x: 0, y: 0}) // don't understand why this is necessary
-		layer.animators.scale.springBounciness = 0
-		layer.animators.scale.springSpeed = 20
-		layer.animators.scale.completionHandler = function () {
-			layer.parent = undefined
+	if (circleLayer != undefined) {
+		var numberLayer = numbersToNumberLayers[number]
+		var animateLayerOut = function(layer) {
+			layer.animators.scale.target = new Point({x: 0, y: 0})
+			layer.animators.scale.velocity = new Point({x: 0, y: 0}) // don't understand why this is necessary
+			layer.animators.scale.springBounciness = 0
+			layer.animators.scale.springSpeed = 20
+			layer.animators.scale.completionHandler = function () {
+				layer.parent = undefined
+			}
 		}
+		animateLayerOut(circleLayer)
+		animateLayerOut(numberLayer)
+
+		delete touchesToCircleLayers[touchSequence.id]
+		delete numbersToNumberLayers[number]
+		touchLayers.splice(touchLayers.indexOf(circleLayer), 1)
+
+		scheduleNumberSpeech()
 	}
-	animateLayerOut(circleLayer)
-	animateLayerOut(numberLayer)
-
-	delete touchesToCircleLayers[touchSequence.id]
-	delete numbersToNumberLayers[number]
-	touchLayers.splice(touchLayers.indexOf(circleLayer), 1)
-
-	scheduleNumberSpeech()
 }
 
 function scheduleNumberSpeech() {
