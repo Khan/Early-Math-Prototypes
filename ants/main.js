@@ -14,6 +14,8 @@ var ants = []
 for (var index = 0; index < 7; index++) {
 	var ant = new Ant()
 	
+	makeAntWander(ant)
+	
 	ants.push(ant)
 }
 
@@ -126,44 +128,47 @@ function Drive(args) {
 
 // Drives: Wander, Ponder, Find food, Carry food
 
-var wander = new Drive({
-	object: ants[0],
-	name: "Wander",
-	importance: 5, // arbitrary
-	
-	// The last time it either paused or started wandering
-	vars: {
-		lastChangeTime: Timestamp.currentTimestamp(),
-		paused: false
-	},
-	
-	shouldUpdate: function() {
+function makeAntWander(ant) {
+	return new Drive({
+		object: ant,
+		name: "Wander",
+		importance: 5, // arbitrary
 		
-		// In this function we check to see when the drive was last paused or started, and toggle if it's at least X seconds old.
-		var now = Timestamp.currentTimestamp()
-		var timeSinceLastChange = now - this.vars.lastChangeTime
+		// The last time it either paused or started wandering
+		vars: {
+			lastChangeTime: Timestamp.currentTimestamp() + Math.floor(Math.random() * 3),
+			paused: false
+		},
 		
-		if (timeSinceLastChange > 5) {
-			this.vars.lastChangeTime = now
-			this.vars.paused = !this.vars.paused
+		shouldUpdate: function() {
+			
+			// In this function we check to see when the drive was last paused or started, and toggle if it's at least X seconds old.
+			var now = Timestamp.currentTimestamp()
+			var timeSinceLastChange = now - this.vars.lastChangeTime
+			
+			if (timeSinceLastChange > 10) {
+				this.vars.lastChangeTime = now
+				this.vars.paused = !this.vars.paused
+			}
+			
+			return this.vars.paused
+		},
+		
+		
+		/** Wander, just a leeeetle bit. */
+		update: function(dt) {
+	
+			var layer = this.object.getLayer()
+			
+			var speed = 100
+			var wanderLust = this.object.getHorizontallyFlipped() ? 1 : -1
+			layer.originX += wanderLust * dt * speed
+			
+			if (layer.originX < 10 || layer.originX + layer.width > Layer.root.width) {
+				this.object.flipHorizontally()
+			}
 		}
-		
-		return this.vars.paused
-	},
+	})
 	
-	
-	/** Wander, just a leeeetle bit. */
-	update: function(dt) {
-
-		var layer = this.object.getLayer()
-		
-		var speed = 100
-		var wanderLust = this.object.getHorizontallyFlipped() ? 1 : -1
-		layer.originX += wanderLust * dt * speed
-		
-		if (layer.originX < 10 || layer.originX + layer.width > Layer.root.width) {
-			this.object.flipHorizontally()
-		}
-	}
-})
+}
 
