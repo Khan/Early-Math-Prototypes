@@ -64,14 +64,27 @@ function makeTargetLabel(targetValue, position) {
 	label.textColor = Layer.root.backgroundColor
 	label.text = targetValue.toString()
 	label.position = position
+	label.userInteractionEnabled = false
 }
 
 var targetCircle1 = makeTargetCircle()
 targetCircle1.x = targetCard.x - targetCircle1.width / 2.0 - 25
+targetCircle1.touchBeganHandler = function() {
+	circle1.animators.scale.target = new Point({x: 1.15, y: 1.15})
+}
+targetCircle1.touchEndedHandler = targetCircle1.touchCancelledHandler = function() {
+	circle1.animators.scale.target = new Point({x: 1, y: 1})
+}
 makeTargetLabel(target1, targetCircle1.position)
 
 var targetCircle2 = makeTargetCircle()
 targetCircle2.x = targetCard.x + targetCircle2.width / 2.0 + 25
+targetCircle2.touchBeganHandler = function() {
+	circle2.animators.scale.target = new Point({x: 1.15, y: 1.15})
+}
+targetCircle2.touchEndedHandler = targetCircle1.touchCancelledHandler = function() {
+	circle2.animators.scale.target = new Point({x: 1, y: 1})
+}
 makeTargetLabel(target2, targetCircle2.position)
 
 function populateCircle(circle, counterCount) {
@@ -129,7 +142,7 @@ function makeCounter() {
 
 	var randomHue = Math.random()
 	counter.backgroundColor = new Color({hue: randomHue, saturation: 0.4, brightness: 1.0})
-	counter.border = new Border({color: new Color({hue: randomHue, saturation: 0.4, brightness: 0.9}), width: 2})
+	//counter.border = new Border({color: new Color({hue: randomHue, saturation: 0.4, brightness: 0.9}), width: 2})
 	counter.width = counter.height = 44
 	counter.cornerRadius = counter.width / 2.0
 	counter.animators.scale.springSpeed = 30
@@ -210,7 +223,10 @@ function makeCounter() {
 			yay.animators.scale.target = new Point({x: 1, y: 1})
 		}
 
-		counter.position = counter.position.add(touchSequence.currentSample.globalLocation.subtract(touchSequence.previousSample.globalLocation))
+		var newPosition = counter.position.add(touchSequence.currentSample.globalLocation.subtract(touchSequence.previousSample.globalLocation))
+		if (!targetCard.containsGlobalPoint(newPosition)) {
+			counter.position = newPosition
+		}
 	}
 	counter.touchEndedHandler = counter.touchCancelledHandler = function(touchSequence) {
 		counter.animators.scale.target = new Point({x: 1.0, y: 1.0})
