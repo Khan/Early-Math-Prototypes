@@ -19,13 +19,15 @@ if (Layer.root.width !== 1024) {
 }
 
 var counterDiameter = 44
+var leftSideColor = new Color({hue: 0.95, saturation: 1.0, brightness: 0.95})
+var rightSideColor = new Color({hue: 0.55, saturation: 1.0, brightness: 0.95})
 
-Layer.root.backgroundColor = new Color({hue: 0.7, saturation: 0.2, brightness: 1.0})
+Layer.root.backgroundColor = new Color({hue: 0.7, saturation: 0.12, brightness: 1.0})
 
 var label1 = makeCurrentCountLabel()
 var label2 = makeCurrentCountLabel()
 
-label1.originY = label2.originY = 40
+label1.originY = label2.originY = 30
 label1.x = Layer.root.x / 2
 label2.x = Layer.root.x * 3/2
 
@@ -35,12 +37,15 @@ var hasWon = false
 
 // Generate the counters
 var sidePaddingX = 50 + counterDiameter / 2
-var sidePaddingY = 100 + counterDiameter / 2
-populateSide(new Rect({x: sidePaddingX, y: sidePaddingY, width: Layer.root.width / 2 - sidePaddingX * 2, height: Layer.root.height - sidePaddingY * 2}), 2)
-populateSide(new Rect({x: Layer.root.width / 2 + sidePaddingX, y: sidePaddingY, width: Layer.root.width / 2 - sidePaddingX * 2, height: Layer.root.height - sidePaddingY * 2}), 6)
+var sidePaddingY = 125 + counterDiameter / 2
+populateSide(new Rect({x: sidePaddingX, y: sidePaddingY, width: Layer.root.width / 2 - sidePaddingX * 2, height: Layer.root.height - sidePaddingY * 2}), 2, leftSideColor)
+populateSide(new Rect({x: Layer.root.width / 2 + sidePaddingX, y: sidePaddingY, width: Layer.root.width / 2 - sidePaddingX * 2, height: Layer.root.height - sidePaddingY * 2}), 6, rightSideColor)
 
 label1.text = "2"
+label1.textColor = leftSideColor
+
 label2.text = "6"
+label2.textColor = rightSideColor
 
 // Draw a line in the middle
 var centerLine = new Layer()
@@ -48,10 +53,11 @@ centerLine.backgroundColor = Color.white
 centerLine.frame = Layer.root.bounds
 centerLine.width = 1
 
-function populateSide(frame, counterCount) {
+function populateSide(frame, counterCount, counterColor) {
 	var counters = []
 	for (var i = 0; i < counterCount; i++) {
 		var counter = makeCounter()
+		counter.backgroundColor = counterColor
 
 		while (true) {
 			// Put it somewhere in the side.
@@ -93,10 +99,11 @@ function makeCounter() {
 	var counter = new Layer()
 
 	var randomHue = Math.random()
-	counter.backgroundColor = new Color({hue: randomHue, saturation: 0.4, brightness: 1.0})
 	counter.width = counter.height = counterDiameter
 	counter.cornerRadius = counter.width / 2.0
 	counter.animators.scale.springSpeed = 30
+	counter.animators.backgroundColor.springSpeed = 30
+	counter.animators.backgroundColor.springBounciness = 0
 
 	counter.touchBeganHandler = function(touchSequence) {
 		counter.animators.scale.target = new Point({x: 1.5, y: 1.5})
@@ -110,9 +117,11 @@ function makeCounter() {
 		if (previousSide === CounterSide.left && currentSide === CounterSide.right) {
 			label1.text = (previousSide1Value - 1).toString()
 			label2.text = (previousSide2Value + 1).toString()
+			counter.animators.backgroundColor.target = rightSideColor
 		} else if (previousSide === CounterSide.right && currentSide === CounterSide.left) {
 			label1.text = (previousSide1Value + 1).toString()
 			label2.text = (previousSide2Value - 1).toString()
+			counter.animators.backgroundColor.target = leftSideColor
 		}
 
 		if (parseInt(label1.text) == target1 && parseInt(label2.text) == target2 && !hasWon) {
