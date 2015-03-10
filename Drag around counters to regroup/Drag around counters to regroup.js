@@ -48,54 +48,6 @@ centerLine.backgroundColor = Color.white
 centerLine.frame = Layer.root.bounds
 centerLine.width = 1
 
-// var targetCard = new Layer()
-// targetCard.backgroundColor = Color.white
-// targetCard.x = Layer.root.x
-// targetCard.y = Layer.root.frameMaxY - 100
-// targetCard.width = 700
-// targetCard.height = 350
-// targetCard.cornerRadius = 60
-// targetCard.alpha = 0
-
-function makeTargetCircle() {
-	var circle = new Layer()
-	circle.border = new Border({color: Layer.root.backgroundColor, width: 3})
-	circle.width = circle.height = 180
-	circle.cornerRadius = circle.width / 2.0
-	circle.y = targetCard.y - 30
-	return circle
-}
-
-function makeTargetLabel(targetValue, position) {
-	var label = new TextLayer()
-	label.fontName = "Futura"
-	label.fontSize = 60
-	label.textColor = Layer.root.backgroundColor
-	label.text = targetValue.toString()
-	label.position = position
-	label.userInteractionEnabled = false
-}
-
-// var targetCircle1 = makeTargetCircle()
-// targetCircle1.x = targetCard.x - targetCircle1.width / 2.0 - 25
-// targetCircle1.touchBeganHandler = function() {
-// 	circle1.animators.scale.target = new Point({x: 1.15, y: 1.15})
-// }
-// targetCircle1.touchEndedHandler = targetCircle1.touchCancelledHandler = function() {
-// 	circle1.animators.scale.target = new Point({x: 1, y: 1})
-// }
-// makeTargetLabel(target1, targetCircle1.position)
-
-// var targetCircle2 = makeTargetCircle()
-// targetCircle2.x = targetCard.x + targetCircle2.width / 2.0 + 25
-// targetCircle2.touchBeganHandler = function() {
-// 	circle2.animators.scale.target = new Point({x: 1.15, y: 1.15})
-// }
-// targetCircle2.touchEndedHandler = targetCircle1.touchCancelledHandler = function() {
-// 	circle2.animators.scale.target = new Point({x: 1, y: 1})
-// }
-// makeTargetLabel(target2, targetCircle2.position)
-
 function populateSide(frame, counterCount) {
 	var counters = []
 	for (var i = 0; i < counterCount; i++) {
