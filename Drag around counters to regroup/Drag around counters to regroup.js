@@ -141,15 +141,18 @@ function makeCounter() {
 	counter.width = counter.height = counterDiameter
 	counter.cornerRadius = 15
 	counter.animators.scale.springSpeed = 30
-	counter.animators.backgroundColor.springSpeed = 30
+	counter.animators.backgroundColor.springSpeed = 40
 	counter.animators.backgroundColor.springBounciness = 0
+	counter.animators.x.springSpeed = 30
+	counter.animators.x.springBounciness = 2
 
 	counter.touchBeganHandler = function(touchSequence) {
 		counter.animators.scale.target = new Point({x: 1.5, y: 1.5})
 	}
 	counter.touchMovedHandler = function(touchSequence) {
-		var previousSide = sideForCounterPosition(touchSequence.previousSample.globalLocation)
-		var currentSide = sideForCounterPosition(touchSequence.currentSample.globalLocation)
+		var newPosition = counter.position.add(touchSequence.currentSample.globalLocation.subtract(touchSequence.previousSample.globalLocation))
+		var previousSide = sideForCounterPosition(counter.position)
+		var currentSide = sideForCounterPosition(newPosition)
 
 		var previousSide1Value = parseInt(label1.text)
 		var previousSide2Value = parseInt(label2.text)
@@ -169,11 +172,13 @@ function makeCounter() {
 			showYay()
 		}
 
-		var newPosition = counter.position.add(touchSequence.currentSample.globalLocation.subtract(touchSequence.previousSample.globalLocation))
 		var clippedPosition = new Point({x: newPosition.x, y: clip({value: newPosition.y, min: leftSideRect.minY, max: leftSideRect.maxY})})
 		counter.position = clippedPosition
 	}
 	counter.touchEndedHandler = counter.touchCancelledHandler = function(touchSequence) {
+		if (counter.frameMaxX > leftSideRect.maxX && counter.originX < rightSideRect.minX) {
+			counter.animators.x.target = (sideForCounterPosition(counter.position) == CounterSide.left) ? leftSideRect.maxX - (counterDiameter * 2/3) : rightSideRect.minX + (counterDiameter * 2/3)
+		}
 		counter.animators.scale.target = new Point({x: 1.0, y: 1.0})
 	}
 
@@ -203,8 +208,6 @@ rightThoughtBubbleAux1.position = rightSideOfRightThoughtBubble.add(new Point({x
 rightThoughtBubbleAux2.position = rightSideOfRightThoughtBubble.add(new Point({x: 35, y: 10}))
 rightThoughtBubbleAux3.position = rightSideOfRightThoughtBubble.add(new Point({x: 60, y: 25}))
 
-var leftThoughtBubbleLabel = makeThoughtBubbleLabel(leftTargetCount)
-
 function makeThoughtBubble(imageNameExtension, value) {
 	var thoughtBubble = new Layer({imageName: "Cloud-" + imageNameExtension})
 	thoughtBubble.position = Layer.root.position
@@ -228,9 +231,6 @@ function makeFloatingCircle(diameter) {
 	circle.cornerRadius = diameter / 2.0
 	circle.behaviors = [makeFloatingBehavior(0.035, 0.40)]
 	return circle
-}
-
-function makeThoughtBubbleLabel(value) {
 }
 
 function makeFloatingBehavior(amplitude, frequency) {
