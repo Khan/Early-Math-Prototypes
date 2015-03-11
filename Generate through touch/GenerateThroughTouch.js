@@ -144,9 +144,10 @@ function makeCircleLayer(position, zposition) {
 	}
 
 	touchCircleLayer.touchEndedHandler = function(touchSequence) {
-		var newVelocity = touchSequence.currentSample.globalLocation.subtract(touchSequence.previousSample.globalLocation)
+		var newVelocity = touchSequence.currentGlobalVelocity()
 		var layerIndex = countFromLayer[touchCircleLayer.name]
-		touchLayerVelocity[layerIndex] = newVelocity
+		// touchLayerVelocity contains velocity per frame; Prototope gives us velocity per *second*.
+		touchLayerVelocity[layerIndex] = newVelocity.multiply(1/60)
 		touchCircleLayer.behaviors = [drift]; 
 	}
 }
