@@ -58,7 +58,8 @@ makeCountLayer();
 var z = 0
 var newCircleLayer = null
 touchCatchingLayer.touchBeganHandler = function(touchSequence) {
-	newCircleLayer = makeCircleLayer(touchSequence.currentSample.globalLocation, touchSequence.currentSample.globalLocation.zPosition)
+	newCircleLayer = makeCircleLayer(touchSequence.currentSample.globalLocation, z)
+	z += 1
 	return true
 }
 
