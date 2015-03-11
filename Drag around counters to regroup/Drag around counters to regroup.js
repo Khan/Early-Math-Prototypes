@@ -53,38 +53,34 @@ var leftInitialCount = 2
 var rightInitialCount = 6
 var hasWon = false
 
-var counterDiameter = 44
+var counterDiameter = 52
 var leftSideColor = kacolors[2]
 var rightSideColor = kacolors[6]
 
-Layer.root.backgroundColor = Color.white
+Layer.root.image = new Image({name: "BG"})
 
 var label1 = makeCurrentCountLabel()
 var label2 = makeCurrentCountLabel()
 
 label1.originY = label2.originY = 30
-label1.x = Layer.root.x / 2
-label2.x = Layer.root.x * 3/2
+label1.x = Layer.root.x - 53
+label2.x = Layer.root.x + 53
 
 
 // Generate the counters
+var leftSideRect = new Rect({x: 0, y: 135, width: 504, height: 422})
+var rightSideRect = new Rect({x: 520, y: 135, width: 504, height: 422})
 var sidePaddingX = 50 + counterDiameter / 2
 var sidePaddingTopY = 150 + counterDiameter / 2
 var sidePaddingBottomY = 250 + counterDiameter / 2
-populateSide(new Rect({x: sidePaddingX, y: sidePaddingTopY, width: Layer.root.width / 2 - sidePaddingX * 2, height: Layer.root.height - sidePaddingTopY - sidePaddingBottomY}), 2, leftSideColor)
-populateSide(new Rect({x: Layer.root.width / 2 + sidePaddingX, y: sidePaddingTopY, width: Layer.root.width / 2 - sidePaddingX * 2, height: Layer.root.height - sidePaddingTopY - sidePaddingBottomY}), 6, rightSideColor)
+populateSide(insetRect(leftSideRect, counterDiameter), 2, leftSideColor)
+populateSide(insetRect(rightSideRect, counterDiameter), 6, rightSideColor)
 
 label1.text = leftInitialCount.toString()
 label1.textColor = leftSideColor
 
 label2.text = rightInitialCount.toString()
 label2.textColor = rightSideColor
-
-// Draw a line in the middle
-var centerLine = new Layer()
-centerLine.backgroundColor = kagreys[5]
-centerLine.frame = Layer.root.bounds
-centerLine.width = 1
 
 function populateSide(frame, counterCount, counterColor) {
 	var counters = []
@@ -116,6 +112,15 @@ function populateSide(frame, counterCount, counterColor) {
 
 		counters.push(counter)
 	}
+}
+
+function insetRect(rect, inset) {
+	return new Rect({
+		x: rect.origin.x + inset,
+		y: rect.origin.y + inset,
+		width: rect.size.width - (inset * 2),
+		height: rect.size.height - (inset * 2)
+	})
 }
 
 function makeCurrentCountLabel() {
@@ -164,7 +169,9 @@ function makeCounter() {
 			showYay()
 		}
 
-		counter.position = counter.position.add(touchSequence.currentSample.globalLocation.subtract(touchSequence.previousSample.globalLocation))
+		var newPosition = counter.position.add(touchSequence.currentSample.globalLocation.subtract(touchSequence.previousSample.globalLocation))
+		var clippedPosition = new Point({x: newPosition.x, y: clip({value: newPosition.y, min: leftSideRect.minY, max: leftSideRect.maxY})})
+		counter.position = clippedPosition
 	}
 	counter.touchEndedHandler = counter.touchCancelledHandler = function(touchSequence) {
 		counter.animators.scale.target = new Point({x: 1.0, y: 1.0})
@@ -176,8 +183,8 @@ function makeCounter() {
 var leftThoughtBubble = makeThoughtBubble("Red", leftTargetCount)
 var rightThoughtBubble = makeThoughtBubble("Blue", rightTargetCount)
 leftThoughtBubble.y = rightThoughtBubble.y = Layer.root.frameMaxY - leftThoughtBubble.height / 2.0 - 30
-leftThoughtBubble.x = label1.x + 90
-rightThoughtBubble.x = label2.x - 90
+leftThoughtBubble.x = (Layer.root.x / 2) + 90
+rightThoughtBubble.x = (Layer.root.x * 3 / 2) - 90
 
 var leftThoughtBubbleAux1 = makeFloatingCircle(30)
 var leftThoughtBubbleAux2 = makeFloatingCircle(20)
