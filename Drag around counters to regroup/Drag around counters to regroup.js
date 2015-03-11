@@ -53,7 +53,7 @@ var leftInitialCount = 2
 var rightInitialCount = 6
 var hasWon = false
 
-var counterDiameter = 52
+var counterDiameter = 65
 var leftSideColor = kacolors[2]
 var rightSideColor = kacolors[6]
 
