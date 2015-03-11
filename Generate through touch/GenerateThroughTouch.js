@@ -115,7 +115,7 @@ function makeCircleLayer(position, zposition) {
 		handleMovingCircle(touchCircleLayer, touchSequence)
 	}
 
-	touchCircleLayer.touchEndedHandler = function(touchSequence) {
+	touchCircleLayer.touchEndedHandler = touchCircleLayer.touchCancelledHandler = function(touchSequence) {
 		handleThrowingCircle(touchCircleLayer, touchSequence)
 	}
 
@@ -131,7 +131,7 @@ function handleThrowingCircle(circle, touchSequence) {
 	var layerIndex = countFromLayer[circle.name]
 	// touchLayerVelocity contains velocity per frame; Prototope gives us velocity per *second*.
 	touchLayerVelocity[layerIndex] = newVelocity.multiply(1/60)
-	
+
 	circle.behaviors = [new ActionBehavior({handler:function(layer) {
 		var layerIndex = countFromLayer[layer.name]
 		var newPosition = layer.position.add(touchLayerVelocity[layerIndex]) //this is a really dumb long way around
