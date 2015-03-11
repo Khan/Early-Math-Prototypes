@@ -1,6 +1,6 @@
 /*
 
-Drag to match cards
+Regrouping with counters
 	built on Prototope @ 7093cfe206
 
 Here we're building 1-to-1 relationships between the counters and the
@@ -10,7 +10,10 @@ the number on the left side by 1.
 
 Key weaknesses here:
 	the prompt isn't really inherently fun / creative / discovery-ish. 
-	not sure the use of color on the tokens isn't more confusing than useful
+
+Other possible directions:
+	have placeholder guy show symbols instead of numerals
+	illustrate the adding and subtracting by 1 with +1 / -1 animations (see comps)
 
 */
 
@@ -53,18 +56,30 @@ var leftInitialCount = 2
 var rightInitialCount = 6
 var hasWon = false
 
+
+// Config
 var counterDiameter = 65
 var leftSideColor = kacolors[2]
 var rightSideColor = kacolors[6]
 
+
+// Background chrome
 Layer.root.image = new Image({name: "BG"})
 
+
+// Top counter labels
 var label1 = makeCurrentCountLabel()
 var label2 = makeCurrentCountLabel()
 
 label1.originY = label2.originY = 30
 label1.x = Layer.root.x - 53
 label2.x = Layer.root.x + 53
+
+label1.text = leftInitialCount.toString()
+label1.textColor = leftSideColor
+
+label2.text = rightInitialCount.toString()
+label2.textColor = rightSideColor
 
 
 // Generate the counters
@@ -76,11 +91,9 @@ var sidePaddingBottomY = 250 + counterDiameter / 2
 populateSide(insetRect(leftSideRect, counterDiameter), 2, leftSideColor)
 populateSide(insetRect(rightSideRect, counterDiameter), 6, rightSideColor)
 
-label1.text = leftInitialCount.toString()
-label1.textColor = leftSideColor
+setupBottomArea()
 
-label2.text = rightInitialCount.toString()
-label2.textColor = rightSideColor
+//============================================================================================
 
 function populateSide(frame, counterCount, counterColor) {
 	var counters = []
@@ -185,28 +198,41 @@ function makeCounter() {
 	return counter
 }
 
-var leftThoughtBubble = makeThoughtBubble("Red", leftTargetCount)
-var rightThoughtBubble = makeThoughtBubble("Blue", rightTargetCount)
-leftThoughtBubble.y = rightThoughtBubble.y = Layer.root.frameMaxY - leftThoughtBubble.height / 2.0 - 30
-leftThoughtBubble.x = (Layer.root.x / 2) + 90
-rightThoughtBubble.x = (Layer.root.x * 3 / 2) - 90
+//============================================================================================
 
-var leftThoughtBubbleAux1 = makeFloatingCircle(30)
-var leftThoughtBubbleAux2 = makeFloatingCircle(20)
-var leftThoughtBubbleAux3 = makeFloatingCircle(10)
-leftThoughtBubbleAux1.backgroundColor = leftThoughtBubbleAux2.backgroundColor = leftThoughtBubbleAux3.backgroundColor = leftSideColor
-leftThoughtBubbleAux1.position = leftThoughtBubble.origin.add(new Point({x: -10, y: 20}))
-leftThoughtBubbleAux2.position = leftThoughtBubble.origin.add(new Point({x: -40, y: 10}))
-leftThoughtBubbleAux3.position = leftThoughtBubble.origin.add(new Point({x: -60, y: 25}))
+// Bottom area stuff (placeholder guy, thought bubbles, etc)
 
-var rightThoughtBubbleAux1 = makeFloatingCircle(30)
-var rightThoughtBubbleAux2 = makeFloatingCircle(20)
-var rightThoughtBubbleAux3 = makeFloatingCircle(10)
-rightThoughtBubbleAux1.backgroundColor = rightThoughtBubbleAux2.backgroundColor = rightThoughtBubbleAux3.backgroundColor = rightSideColor
-var rightSideOfRightThoughtBubble = new Point({x: rightThoughtBubble.frameMaxX, y: rightThoughtBubble.originY})
-rightThoughtBubbleAux1.position = rightSideOfRightThoughtBubble.add(new Point({x: 0, y: 20}))
-rightThoughtBubbleAux2.position = rightSideOfRightThoughtBubble.add(new Point({x: 35, y: 10}))
-rightThoughtBubbleAux3.position = rightSideOfRightThoughtBubble.add(new Point({x: 60, y: 25}))
+function setupBottomArea() {
+	var leftThoughtBubble = makeThoughtBubble("Red", leftTargetCount)
+	var rightThoughtBubble = makeThoughtBubble("Blue", rightTargetCount)
+	leftThoughtBubble.y = rightThoughtBubble.y = Layer.root.frameMaxY - leftThoughtBubble.height / 2.0 - 30
+	leftThoughtBubble.x = (Layer.root.x / 2) + 90
+	rightThoughtBubble.x = (Layer.root.x * 3 / 2) - 90
+
+	var leftThoughtBubbleAux1 = makeFloatingCircle(30)
+	var leftThoughtBubbleAux2 = makeFloatingCircle(20)
+	var leftThoughtBubbleAux3 = makeFloatingCircle(10)
+	leftThoughtBubbleAux1.backgroundColor = leftThoughtBubbleAux2.backgroundColor = leftThoughtBubbleAux3.backgroundColor = leftSideColor
+	leftThoughtBubbleAux1.position = leftThoughtBubble.origin.add(new Point({x: -10, y: 20}))
+	leftThoughtBubbleAux2.position = leftThoughtBubble.origin.add(new Point({x: -40, y: 10}))
+	leftThoughtBubbleAux3.position = leftThoughtBubble.origin.add(new Point({x: -60, y: 25}))
+
+	var rightThoughtBubbleAux1 = makeFloatingCircle(30)
+	var rightThoughtBubbleAux2 = makeFloatingCircle(20)
+	var rightThoughtBubbleAux3 = makeFloatingCircle(10)
+	rightThoughtBubbleAux1.backgroundColor = rightThoughtBubbleAux2.backgroundColor = rightThoughtBubbleAux3.backgroundColor = rightSideColor
+	var rightSideOfRightThoughtBubble = new Point({x: rightThoughtBubble.frameMaxX, y: rightThoughtBubble.originY})
+	rightThoughtBubbleAux1.position = rightSideOfRightThoughtBubble.add(new Point({x: 0, y: 20}))
+	rightThoughtBubbleAux2.position = rightSideOfRightThoughtBubble.add(new Point({x: 35, y: 10}))
+	rightThoughtBubbleAux3.position = rightSideOfRightThoughtBubble.add(new Point({x: 60, y: 25}))
+
+	var leftPlaceholderGuy = new Layer({imageName: "placeholder guy"})
+	var rightPlaceholderGuy = new Layer({imageName: "placeholder guy"})
+	leftPlaceholderGuy.y = rightPlaceholderGuy.y = Layer.root.frameMaxY - leftPlaceholderGuy.height / 2.0 + 35
+	leftPlaceholderGuy.originX = 80
+	rightPlaceholderGuy.originX = Layer.root.frameMaxX - rightPlaceholderGuy.width - 80
+	rightPlaceholderGuy.scaleX = -1
+}
 
 function makeThoughtBubble(imageNameExtension, value) {
 	var thoughtBubble = new Layer({imageName: "Cloud-" + imageNameExtension})
@@ -240,12 +266,7 @@ function makeFloatingBehavior(amplitude, frequency) {
 	}})
 }
 
-var leftPlaceholderGuy = new Layer({imageName: "placeholder guy"})
-var rightPlaceholderGuy = new Layer({imageName: "placeholder guy"})
-leftPlaceholderGuy.y = rightPlaceholderGuy.y = Layer.root.frameMaxY - leftPlaceholderGuy.height / 2.0 + 35
-leftPlaceholderGuy.originX = 80
-rightPlaceholderGuy.originX = Layer.root.frameMaxX - rightPlaceholderGuy.width - 80
-rightPlaceholderGuy.scaleX = -1
+//============================================================================================
 
 var CounterSide = {
 	left: 0,
