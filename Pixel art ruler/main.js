@@ -15,10 +15,10 @@ Open questions:
 
 var pixelGridSize = 64
 
-Layer.root.backgroundColor = new Color({hue: 0.2, saturation: 0.08, brightness: 1.0})
-
 var touchCatchingLayer = new Layer()
 touchCatchingLayer.frame = Layer.root.bounds
+
+makeGrid()
 
 var activeTouchID = null
 var touchedBlock = null
@@ -116,4 +116,18 @@ function makeBlock(originX, originY) {
 
 function roundPoint(point) {
 	return new Point({x: Math.floor(point.x / pixelGridSize) * pixelGridSize, y: Math.floor(point.y / pixelGridSize) * pixelGridSize})
+}
+
+function makeGrid() {
+	for (var row = 0; row < Layer.root.height / pixelGridSize; row++) {
+		for (var column = 0; column < Layer.root.width / pixelGridSize; column++) {
+			var gridBlock = new Layer()
+			gridBlock.width = gridBlock.height = pixelGridSize
+			gridBlock.originX = row * pixelGridSize
+			gridBlock.originY = column * pixelGridSize
+			gridBlock.border = new Border({color: Color.white, width: 1})
+			gridBlock.alpha = 0.4
+			gridBlock.userInteractionEnabled = false
+		}
+	}
 }
