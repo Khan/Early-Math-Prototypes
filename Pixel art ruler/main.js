@@ -23,23 +23,16 @@ makeGrid()
 var activeTouchID = null
 var touchedBlock = null
 var labelLayer = null
-var isHorizontal = null // locking: null (?), false (vertical), or true (horizontal)
-
-var minX = null
-var maxX = null
-var minY = null
-var maxY = null
-
-var activeColor = null
 
 touchCatchingLayer.touchBeganHandler = function(touchSequence) {
 	if (activeTouchID === null) {
 		activeTouchID = touchSequence.id
 		var randomHue = Math.random()
-		activeColor = new Color({hue: randomHue, saturation: 0.4, brightness: 1.0})
+		var activeColor = new Color({hue: randomHue, saturation: 0.4, brightness: 1.0})
 
 		var blockGridOrigin = roundPoint(touchSequence.currentSample.globalLocation)
 		var block = makeBlock(blockGridOrigin.x, blockGridOrigin.y) 
+		block.backgroundColor = activeColor
 		touchedBlock = block
 
 		block.scale = 0.001
@@ -66,29 +59,20 @@ touchCatchingLayer.touchMovedHandler = function(touchSequence) {
 	if (activeTouchID === touchSequence.id) {
 		var newBlockOrigin = roundPoint(touchSequence.currentSample.globalLocation)
 		var firstBlockOrigin = roundPoint(touchSequence.firstSample.globalLocation)
-		if (!newBlockOrigin.equals(firstBlockOrigin)) {
-			if (maxX === null) {
-				minX = maxX = firstBlockOrigin.x
-				minY = maxY = firstBlockOrigin.y
-			}
 
-			if (newBlockOrigin.x > maxX) {
-				maxX = newBlockOrigin.x
-			}
-			if (newBlockOrigin.x < minX) {
-				minX = newBlockOrigin.x
-			}
-			if (newBlockOrigin.y > maxY) {
-				maxY = newBlockOrigin.y
-			}
-			if (newBlockOrigin.y < minY) {
-				minY = newBlockOrigin.y
-			}
+		// labelLayer.animators.x.target = touchedBlock.x
+		// labelLayer.animators.y.target = minY - pixelGridSize / 2.0
 
-			labelLayer.animators.x.target = newBlockOrigin.x + pixelGridSize / 2.0
-			touchedBlock.animators.frame.target = new Rect({x: minX, y: minY, width: maxX - minX + pixelGridSize, height: maxY - minY + pixelGridSize})
-			labelLayer.text = (Math.floor((maxX - minX) / pixelGridSize + 1)).toString()
-		}
+		var newX = Math.min(newBlockOrigin.x, firstBlockOrigin.x)
+		var newY = Math.min(newBlockOrigin.y, firstBlockOrigin.y)
+
+		touchedBlock.animators.frame.target = new Rect({
+			x: newX,
+			y: newY,
+			width: Math.max(newBlockOrigin.x, firstBlockOrigin.x) - newX + pixelGridSize,
+			height: Math.max(newBlockOrigin.y, firstBlockOrigin.y) - newY + pixelGridSize
+		})
+		// labelLayer.text = (Math.floor((maxX - minX) / pixelGridSize + 1)).toString()
 	}
 }
 
@@ -98,9 +82,6 @@ touchCatchingLayer.touchEndedHandler = touchCatchingLayer.touchCancelledHandler 
 		labelLayer.animators.y.target = touchedBlock.y
 		activeTouchID = null
 		touchedBlock = null
-		isHorizontal = null
-		activeColor = null
-		minX = maxX = minY = maxY = null
 		labelLayer = null
 	}
 }
@@ -108,7 +89,6 @@ touchCatchingLayer.touchEndedHandler = touchCatchingLayer.touchCancelledHandler 
 function makeBlock(originX, originY) {
 	var block = new Layer({parent: touchCatchingLayer})
 	block.width = block.height = pixelGridSize
-	block.backgroundColor = activeColor
 	block.originX = originX
 	block.originY = originY
 	return block
