@@ -24,11 +24,12 @@ speakerLayer.touchMovedHandler = function(touchSequence) {
 
 var zeroLayer = new Layer({imageName: "0"})
 zeroLayer.position = new Point({x: 300, y: 300})
-zeroLayer.name = "zero"
+// zeroLayer.name = "zero"
 
 var oneLayer = new Layer({imageName: "1"})
 oneLayer.position = new Point({x: 450, y: 300})
-oneLayer.name = "one"
+// oneLayer.name = "one"
+
 
 var speakableLayers = [zeroLayer, oneLayer]
 var behaviors = []
@@ -49,5 +50,4 @@ function makeCollision(layer) {
 	}})
 }
 
-console.log(behaviors)
 speakerLayer.behaviors = behaviors
