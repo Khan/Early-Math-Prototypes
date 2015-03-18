@@ -136,7 +136,7 @@ function makeAntWander(ant) {
 		
 		// The last time it either paused or started wandering
 		vars: {
-			lastChangeTime: Timestamp.currentTimestamp() + Math.floor(Math.random() * 3),
+			lastChangeTime: Timestamp.currentTimestamp() + Math.floor(Math.random() * 10),
 			paused: false
 		},
 		
