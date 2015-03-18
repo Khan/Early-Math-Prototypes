@@ -24,8 +24,12 @@ var activeTouchID = null
 var touchedBlock = null
 var labelLayer = null
 var isHorizontal = null // locking: null (?), false (vertical), or true (horizontal)
-var minPosition = null
-var maxPosition = null
+
+var minX = null
+var maxX = null
+var minY = null
+var maxY = null
+
 var activeColor = null
 
 touchCatchingLayer.touchBeganHandler = function(touchSequence) {
@@ -63,30 +67,27 @@ touchCatchingLayer.touchMovedHandler = function(touchSequence) {
 		var newBlockOrigin = roundPoint(touchSequence.currentSample.globalLocation)
 		var firstBlockOrigin = roundPoint(touchSequence.firstSample.globalLocation)
 		if (!newBlockOrigin.equals(firstBlockOrigin)) {
-			if (isHorizontal === null) {
-				isHorizontal = newBlockOrigin.x !== firstBlockOrigin.x
-				maxPosition = minPosition = (isHorizontal ? firstBlockOrigin.x : firstBlockOrigin.y)
+			if (maxX === null) {
+				minX = maxX = firstBlockOrigin.x
+				minY = maxY = firstBlockOrigin.y
 			}
-			if (isHorizontal === true) {
-				if (newBlockOrigin.x > maxPosition) {
-					maxPosition = newBlockOrigin.x
-				}
-				if (newBlockOrigin.x < minPosition) {
-					minPosition = newBlockOrigin.x
-				}
-				labelLayer.animators.x.target = newBlockOrigin.x + pixelGridSize / 2.0
-				touchedBlock.animators.frame.target = new Rect({x: minPosition, y: firstBlockOrigin.y, width: maxPosition - minPosition + pixelGridSize, height: pixelGridSize})
-			} else {
-				if (newBlockOrigin.y > maxPosition) {
-					maxPosition = newBlockOrigin.y
-				}
-				if (newBlockOrigin.y < minPosition) {
-					minPosition = newBlockOrigin.y
-				}
-				labelLayer.animators.y.target = newBlockOrigin.y + pixelGridSize / 2.0
-				touchedBlock.animators.frame.target = new Rect({x: firstBlockOrigin.x, y: minPosition, width: pixelGridSize, height: maxPosition - minPosition + pixelGridSize})
+
+			if (newBlockOrigin.x > maxX) {
+				maxX = newBlockOrigin.x
 			}
-			labelLayer.text = (Math.floor((maxPosition - minPosition) / pixelGridSize + 1)).toString()
+			if (newBlockOrigin.x < minX) {
+				minX = newBlockOrigin.x
+			}
+			if (newBlockOrigin.y > maxY) {
+				maxY = newBlockOrigin.y
+			}
+			if (newBlockOrigin.y < minY) {
+				minY = newBlockOrigin.y
+			}
+
+			labelLayer.animators.x.target = newBlockOrigin.x + pixelGridSize / 2.0
+			touchedBlock.animators.frame.target = new Rect({x: minX, y: minY, width: maxX - minX + pixelGridSize, height: maxY - minY + pixelGridSize})
+			labelLayer.text = (Math.floor((maxX - minX) / pixelGridSize + 1)).toString()
 		}
 	}
 }
@@ -99,8 +100,7 @@ touchCatchingLayer.touchEndedHandler = touchCatchingLayer.touchCancelledHandler 
 		touchedBlock = null
 		isHorizontal = null
 		activeColor = null
-		minPosition = null
-		maxPosition = null
+		minX = maxX = minY = maxY = null
 		labelLayer = null
 	}
 }
@@ -123,8 +123,8 @@ function makeGrid() {
 		for (var column = 0; column < Layer.root.width / pixelGridSize; column++) {
 			var gridBlock = new Layer()
 			gridBlock.width = gridBlock.height = pixelGridSize
-			gridBlock.originX = row * pixelGridSize
-			gridBlock.originY = column * pixelGridSize
+			gridBlock.originX = column * pixelGridSize
+			gridBlock.originY = row * pixelGridSize
 			gridBlock.border = new Border({color: Color.white, width: 1})
 			gridBlock.alpha = 0.4
 			gridBlock.userInteractionEnabled = false
