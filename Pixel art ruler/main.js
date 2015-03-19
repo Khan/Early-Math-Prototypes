@@ -73,7 +73,9 @@ touchCatchingLayer.touchMovedHandler = function(touchSequence) {
 		touchedBlock.animators.frame.target = newFrame
 		applyRulerLayout(horizontalLabelLayer, layoutHorizontalRulerOutside(newFrame), true)
 		applyRulerLayout(verticalLabelLayer, layoutVerticalRulerOutside(newFrame), true)
-		// labelLayer.text = (Math.floor((maxX - minX) / pixelGridSize + 1)).toString()
+
+		horizontalLabelLayer.label.text = (newFrame.size.width / pixelGridSize).toString()
+		verticalLabelLayer.label.text = (newFrame.size.height / pixelGridSize).toString()
 	}
 }
 
@@ -132,6 +134,7 @@ function makeLabelLayer() {
 	labelLayer.fontSize = 50
 	labelLayer.text = "1"
 	labelLayer.textColor = Color.black
+	container.label = labelLayer
 
 	var labelGuideColor = Color.black
 
