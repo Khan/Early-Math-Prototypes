@@ -15,19 +15,19 @@ Open questions:
 
 var pixelGridSize = 64
 var outerRulerCapSize = 10
+var outerRulerLineOffset = 18
 var innerRulerCapSize = 5
 var innerRulerPadding = 5
 
 var touchCatchingLayer = new Layer()
 touchCatchingLayer.frame = Layer.root.bounds
 
-makeGrid()
-
+// State
 var activeTouchID = null
 var touchedBlock = null
-
 var horizontalLabelLayer = null
 var verticalLabelLayer = null
+var paintedBlockCount = 0
 
 touchCatchingLayer.touchBeganHandler = function(touchSequence) {
 	if (activeTouchID === null) {
@@ -89,16 +89,23 @@ touchCatchingLayer.touchEndedHandler = touchCatchingLayer.touchCancelledHandler 
 		verticalLabelLayer.sublayerNamed("label").scale = 0.3
 		applyRulerLayout(verticalLabelLayer, layoutVerticalRulerInside(finalModelBlockSize), true)
 
+		makeGrid(touchedBlock, finalModelBlockSize.size)
+
 		activeTouchID = null
 		touchedBlock = null
+		paintedBlockCount++
+
 	}
 }
 
+//============================================================================================
+
 function makeBlock(originX, originY) {
-	var block = new Layer({parent: touchCatchingLayer})
+	var block = new Layer()
 	block.width = block.height = pixelGridSize
 	block.originX = originX
 	block.originY = originY
+	block.userInteractionEnabled = false
 
 	block.animators.scale.springSpeed = 50
 	block.animators.scale.springBounciness = 6
@@ -112,22 +119,28 @@ function roundPoint(point) {
 	return new Point({x: Math.floor(point.x / pixelGridSize) * pixelGridSize, y: Math.floor(point.y / pixelGridSize) * pixelGridSize})
 }
 
-function makeGrid() {
-	for (var row = 0; row < Layer.root.height / pixelGridSize; row++) {
-		for (var column = 0; column < Layer.root.width / pixelGridSize; column++) {
-			var gridBlock = new Layer()
+function makeGrid(blockLayer, size) {
+	for (var row = 0; row <= size.height / pixelGridSize; row++) {
+		for (var column = 0; column <= size.width / pixelGridSize; column++) {
+			var gridBlock = new Layer({parent: blockLayer})
 			gridBlock.width = gridBlock.height = pixelGridSize
 			gridBlock.originX = column * pixelGridSize
 			gridBlock.originY = row * pixelGridSize
 			gridBlock.border = new Border({color: Color.white, width: 1})
 			gridBlock.alpha = 0.4
 			gridBlock.userInteractionEnabled = false
+
+			// Above blocks, below labels...
+			gridBlock.alpha = 0
+			gridBlock.animators.alpha.springBouncincess = 0
+			gridBlock.animators.alpha.target = 0.5
 		}
 	}
 }
 
 function makeLabelLayer() {
 	var container = new Layer()
+	container.userInteractionEnabled = false
 
 	var labelLayer = new TextLayer({parent: container, name: "label"})
 	labelLayer.fontName = "Futura"
@@ -160,29 +173,27 @@ function makeLabelLayer() {
 	return container
 }
 
-var rulerLineOffset = 18
-
 function layoutHorizontalRulerOutside(blockFrame) {
 	return {
 		labelPosition: new Point({
 			x: blockFrame.midX,
-			y: blockFrame.minY - pixelGridSize / 2.0 - rulerLineOffset
+			y: blockFrame.minY - pixelGridSize / 2.0 - outerRulerLineOffset
 		}),
 		minCapFrame: new Rect({
 			x: blockFrame.minX,
-			y: blockFrame.minY - (pixelGridSize - outerRulerCapSize) / 2.0 - outerRulerCapSize + rulerLineOffset,
+			y: blockFrame.minY - (pixelGridSize - outerRulerCapSize) / 2.0 - outerRulerCapSize + outerRulerLineOffset,
 			width: 1,
 			height: outerRulerCapSize
 		}),
 		maxCapFrame: new Rect({
 			x: blockFrame.maxX,
-			y: blockFrame.minY - (pixelGridSize - outerRulerCapSize) / 2.0 - outerRulerCapSize + rulerLineOffset,
+			y: blockFrame.minY - (pixelGridSize - outerRulerCapSize) / 2.0 - outerRulerCapSize + outerRulerLineOffset,
 			width: 1,
 			height: outerRulerCapSize
 		}),
 		lineFrame: new Rect({
 			x: blockFrame.minX,
-			y: blockFrame.minY - pixelGridSize / 2.0 + rulerLineOffset,
+			y: blockFrame.minY - pixelGridSize / 2.0 + outerRulerLineOffset,
 			width: blockFrame.size.width,
 			height: 1
 		})
@@ -192,23 +203,23 @@ function layoutHorizontalRulerOutside(blockFrame) {
 function layoutVerticalRulerOutside(blockFrame) {
 	return {
 		labelPosition: new Point({
-			x: blockFrame.minX - pixelGridSize / 2.0 - rulerLineOffset,
+			x: blockFrame.minX - pixelGridSize / 2.0 - outerRulerLineOffset,
 			y: blockFrame.midY
 		}),
 		minCapFrame: new Rect({
-			x: blockFrame.minX - (pixelGridSize - outerRulerCapSize) / 2.0 - outerRulerCapSize + rulerLineOffset,
+			x: blockFrame.minX - (pixelGridSize - outerRulerCapSize) / 2.0 - outerRulerCapSize + outerRulerLineOffset,
 			y: blockFrame.minY,
 			width: outerRulerCapSize,
 			height: 1
 		}),
 		maxCapFrame: new Rect({
-			x: blockFrame.minX - (pixelGridSize - outerRulerCapSize) / 2.0 - outerRulerCapSize + rulerLineOffset,
+			x: blockFrame.minX - (pixelGridSize - outerRulerCapSize) / 2.0 - outerRulerCapSize + outerRulerLineOffset,
 			y: blockFrame.maxY,
 			width: outerRulerCapSize,
 			height: 1
 		}),
 		lineFrame: new Rect({
-			x: blockFrame.minX - pixelGridSize / 2.0 + rulerLineOffset,
+			x: blockFrame.minX - pixelGridSize / 2.0 + outerRulerLineOffset,
 			y: blockFrame.minY,
 			width: 1,
 			height: blockFrame.size.height
@@ -220,7 +231,7 @@ function layoutHorizontalRulerInside(blockFrame) {
 	return {
 		labelPosition: new Point({
 			x: blockFrame.midX,
-			y: blockFrame.minY + rulerLineOffset
+			y: blockFrame.minY + outerRulerLineOffset
 		}),
 		minCapFrame: new Rect({
 			x: blockFrame.minX + innerRulerCapSize + innerRulerPadding * 2.0,
@@ -246,7 +257,7 @@ function layoutHorizontalRulerInside(blockFrame) {
 function layoutVerticalRulerInside(blockFrame) {
 	return {
 		labelPosition: new Point({
-			x: blockFrame.minX + rulerLineOffset,
+			x: blockFrame.minX + outerRulerLineOffset,
 			y: blockFrame.midY
 		}),
 		minCapFrame: new Rect({
