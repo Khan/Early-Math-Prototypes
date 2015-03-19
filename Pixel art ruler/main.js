@@ -236,7 +236,7 @@ function layoutHorizontalRulerInside(blockFrame) {
 		}),
 		lineFrame: new Rect({
 			x: blockFrame.minX + innerRulerCapSize + innerRulerPadding * 2.0,
-			y: blockFrame.minY + innerRulerPadding + innerRulerCapSize / 2.0,
+			y: blockFrame.minY + innerRulerPadding + innerRulerCapSize / 2.0 - 0.5,
 			width: blockFrame.size.width - (innerRulerCapSize + innerRulerPadding * 3.0),
 			height: 1
 		})
@@ -262,7 +262,7 @@ function layoutVerticalRulerInside(blockFrame) {
 			height: 1
 		}),
 		lineFrame: new Rect({
-			x: blockFrame.minX + innerRulerPadding + innerRulerCapSize / 2.0,
+			x: blockFrame.minX + innerRulerPadding + innerRulerCapSize / 2.0 - 0.5,
 			y: blockFrame.minY + innerRulerCapSize + innerRulerPadding * 2.0,
 			width: 1,
 			height: blockFrame.size.height - (innerRulerCapSize + innerRulerPadding * 3.0)
