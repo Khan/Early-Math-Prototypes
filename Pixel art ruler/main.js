@@ -79,7 +79,16 @@ touchCatchingLayer.touchBeganHandler = function(touchSequence) {
 
 touchCatchingLayer.touchMovedHandler = function(touchSequence) {
 	if (activeTouchID === touchSequence.id) {
-		var newBlockOrigin = roundPoint(touchSequence.currentSample.globalLocation)
+		// Don't let the blocks overlap the toolbar
+		var clippedLocation = new Point({
+			x: touchSequence.currentSample.globalLocation.x,
+			y: clip({
+				value: touchSequence.currentSample.globalLocation.y,
+				min: 0,
+				max: (Math.floor(toolbar.origin.y / pixelGridSize) * pixelGridSize) - pixelGridSize
+			})
+		})
+		var newBlockOrigin = roundPoint(clippedLocation)
 		var firstBlockOrigin = roundPoint(touchSequence.firstSample.globalLocation)
 
 		var newX = Math.min(newBlockOrigin.x, firstBlockOrigin.x)
