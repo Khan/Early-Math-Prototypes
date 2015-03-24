@@ -13,14 +13,37 @@ Open questions:
 
 */
 
+if (Layer.root.width != 1024) {
+	throw "This prototype wants to be run in landscape on an iPad!"
+}
+
+var toolbarColors = [
+	new Color({hex: "9B73AB"}),
+	new Color({hex: "C55F73"}),
+	new Color({hex: "FA6255"}),
+	new Color({hex: "EFAC5F"}),
+	new Color({hex: "83C166"}),
+	new Color({hex: "5CD0B1"}),
+	new Color({hex: "4FBAD3"}),
+	new Color({hex: "6A8CA6"}),
+	new Color({hex: "1F2C35"}),
+	new Color({hex: "FEFFFF"})
+]
+
 var pixelGridSize = 64
 var outerRulerCapSize = 10
 var outerRulerLineOffset = 18
 var innerRulerCapSize = 5
 var innerRulerPadding = 5
 
+var toolbarFirstWellPoint = 95
+var toolbarWellWidth = 84
+var toolbarSelectionCenter = 38
+
 var touchCatchingLayer = new Layer()
 touchCatchingLayer.frame = Layer.root.bounds
+
+var toolbar = makeToolbar()
 
 // State
 var activeTouchID = null
@@ -28,12 +51,11 @@ var touchedBlock = null
 var horizontalLabelLayer = null
 var verticalLabelLayer = null
 var paintedBlockCount = 0
+var activeColor = toolbarColors[0]
 
 touchCatchingLayer.touchBeganHandler = function(touchSequence) {
 	if (activeTouchID === null) {
 		activeTouchID = touchSequence.id
-		var randomHue = Math.random()
-		var activeColor = new Color({hue: randomHue, saturation: 0.4, brightness: 1.0})
 
 		var blockGridOrigin = roundPoint(touchSequence.currentSample.globalLocation)
 		var block = makeBlock(blockGridOrigin.x, blockGridOrigin.y) 
@@ -293,4 +315,50 @@ function applyRulerLayout(ruler, layout, animated) {
 		ruler.sublayerNamed("maxCap").frame = layout.maxCapFrame
 		ruler.sublayerNamed("line").frame = layout.lineFrame
 	}
+}
+
+//============================================================================
+
+function makeToolbar() {
+	var toolbar = new Layer({imageName: "toolbar"})
+	toolbar.x = Layer.root.x
+	toolbar.originY = Layer.root.frameMaxY - toolbar.height
+	toolbar.zPosition = 100000
+  
+  	toolbar.selectionDotLayer = makeToolbarSelectionDot(toolbar, 0)
+
+	toolbar.touchBeganHandler = function(touchSequence) {
+		var index = clip({
+			value: Math.floor((touchSequence.currentSample.globalLocation.x - toolbarFirstWellPoint) / toolbarWellWidth),
+			min: 0,
+			max: 9
+		})
+		activeColor = toolbarColors[index]
+
+		toolbar.selectionDotLayer.animators.scale.target = new Point({x: 0, y: 0})
+		var oldSelectionDotLayer = toolbar.selectionDotLayer
+		toolbar.selectionDotLayer.animators.scale.completionHandler = function() { oldSelectionDotLayer.parent = undefined }
+	  	toolbar.selectionDotLayer = makeToolbarSelectionDot(toolbar, index)
+	  	toolbar.selectionDotLayer.scale = 0.0001
+	  	toolbar.selectionDotLayer.animators.scale.target = new Point({x: 1.2, y: 1.2})
+	}
+
+	toolbar.touchEndedHandler = function(touchSequence) {
+		toolbar.selectionDotLayer.animators.scale.target = new Point({x: 1, y: 1})
+	}
+  
+  return toolbar
+}
+
+function makeToolbarSelectionDot(toolbar, index) {
+  var dot = new Layer({parent: toolbar})
+  dot.width = dot.height = 40
+  dot.backgroundColor = index == 9 ? Color.black : Color.white
+  dot.alpha = 0.5
+  dot.cornerRadius = dot.width / 2
+  dot.y = toolbar.bounds.midY
+  dot.x = toolbarFirstWellPoint + toolbarWellWidth * index + toolbarSelectionCenter
+  dot.animators.scale.springBounciness = 3
+  dot.animators.scale.springSpeed = 20
+  return dot
 }
