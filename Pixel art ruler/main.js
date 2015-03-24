@@ -139,6 +139,9 @@ function makeBlock(originX, originY) {
 	block.originX = originX
 	block.originY = originY
 	block.userInteractionEnabled = false
+	if (activeColor === toolbarColors[9]) {
+		block.border = new Border({color: new Color({white: 0.9}), width: 1})
+	}
 
 	block.animators.scale.springSpeed = 50
 	block.animators.scale.springBounciness = 6
