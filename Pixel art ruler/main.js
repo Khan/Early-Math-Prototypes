@@ -115,9 +115,11 @@ touchCatchingLayer.touchEndedHandler = touchCatchingLayer.touchCancelledHandler 
 		var finalModelBlockSize = touchedBlock.animators.frame.target || touchedBlock.frame
 
 		horizontalLabelLayer.sublayerNamed("label").scale = 0.3
+		setRulerColor(horizontalLabelLayer, (activeColor === toolbarColors[8]) ? Color.white : Color.black)
 		applyRulerLayout(horizontalLabelLayer, layoutHorizontalRulerInside(finalModelBlockSize), true)
 
 		verticalLabelLayer.sublayerNamed("label").scale = 0.3
+		setRulerColor(verticalLabelLayer, (activeColor === toolbarColors[8]) ? Color.white : Color.black)
 		applyRulerLayout(verticalLabelLayer, layoutVerticalRulerInside(finalModelBlockSize), true)
 
 		makeGrid(touchedBlock, finalModelBlockSize.size)
@@ -173,14 +175,16 @@ function makeLabelLayer() {
 	var container = new Layer()
 	container.userInteractionEnabled = false
 
+	var color = Color.black
+
 	var labelLayer = new TextLayer({parent: container, name: "label"})
 	labelLayer.fontName = "Futura"
 	labelLayer.fontSize = 50
 	labelLayer.text = "1"
-	labelLayer.textColor = Color.black
+	labelLayer.textColor = color
 	container.label = labelLayer
 
-	var labelGuideColor = Color.black
+	var labelGuideColor = color
 
 	var minCap = new Layer({parent: container, name: "minCap"})
 	minCap.backgroundColor = labelGuideColor
@@ -324,6 +328,13 @@ function applyRulerLayout(ruler, layout, animated) {
 		ruler.sublayerNamed("maxCap").frame = layout.maxCapFrame
 		ruler.sublayerNamed("line").frame = layout.lineFrame
 	}
+}
+
+function setRulerColor(ruler, color) {
+	ruler.label.textColor = color
+	ruler.sublayerNamed("minCap").backgroundColor = color
+	ruler.sublayerNamed("maxCap").backgroundColor = color
+	ruler.sublayerNamed("line").backgroundColor = color
 }
 
 //============================================================================
