@@ -1,3 +1,16 @@
+/*
+
+XOR Five Frame
+	built on Prototope@7b5d29c
+
+Exploring interactive shape exclusion as a way of visualizing partners in five
+frames. (i.e. what number must be added to 2 to make 5?)
+
+Prototope doesn't really want to do XOR yet, so the implementation is a bit
+tortured. This would feel a lot better if you could play with more shapes at
+once, including shapes that aren't five frames.
+
+*/
 
 // these are the early math riffs off of the KA color palette *for now*
 // it would be nice to have these pulled off of something central eventually!
