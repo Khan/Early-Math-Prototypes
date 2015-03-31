@@ -30,7 +30,7 @@ var toolbarColors = [
 	new Color({hex: "FEFFFF"})
 ]
 
-var pixelGridSize = 64
+var pixelGridSize = 48
 var outerRulerCapSize = 10
 var outerRulerLineOffset = 18
 var innerRulerCapSize = 5
@@ -101,6 +101,11 @@ touchCatchingLayer.touchMovedHandler = function(touchSequence) {
 			height: Math.max(newBlockOrigin.y, firstBlockOrigin.y) - newY + pixelGridSize
 		})
 
+		if (touchedBlock.grid !== undefined) {
+			touchedBlock.grid.parent = undefined
+		}
+		touchedBlock.grid = makeGrid(touchedBlock, newFrame.size)
+
 		touchedBlock.animators.frame.target = newFrame
 		applyRulerLayout(horizontalLabelLayer, layoutHorizontalRulerOutside(newFrame), true)
 		applyRulerLayout(verticalLabelLayer, layoutVerticalRulerOutside(newFrame), true)
@@ -121,8 +126,6 @@ touchCatchingLayer.touchEndedHandler = touchCatchingLayer.touchCancelledHandler 
 		verticalLabelLayer.sublayerNamed("label").scale = 0.3
 		setRulerColor(verticalLabelLayer, (activeColor === toolbarColors[8]) ? Color.white : Color.black)
 		applyRulerLayout(verticalLabelLayer, layoutVerticalRulerInside(finalModelBlockSize), true)
-
-		makeGrid(touchedBlock, finalModelBlockSize.size)
 
 		activeTouchID = null
 		touchedBlock = null
@@ -156,22 +159,21 @@ function roundPoint(point) {
 }
 
 function makeGrid(blockLayer, size) {
+	var container = new Layer({parent: blockLayer})
+	container.size = size
+	container.origin = Point.zero
 	for (var row = 0; row <= size.height / pixelGridSize; row++) {
 		for (var column = 0; column <= size.width / pixelGridSize; column++) {
-			var gridBlock = new Layer({parent: blockLayer})
+			var gridBlock = new Layer({parent: container})
 			gridBlock.width = gridBlock.height = pixelGridSize
 			gridBlock.originX = column * pixelGridSize
 			gridBlock.originY = row * pixelGridSize
 			gridBlock.border = new Border({color: Color.white, width: 1})
 			gridBlock.alpha = 0.4
 			gridBlock.userInteractionEnabled = false
-
-			// Above blocks, below labels...
-			gridBlock.alpha = 0
-			gridBlock.animators.alpha.springBouncincess = 0
-			gridBlock.animators.alpha.target = 0.5
 		}
 	}
+	return container
 }
 
 function makeLabelLayer() {
