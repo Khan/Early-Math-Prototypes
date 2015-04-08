@@ -8,6 +8,8 @@ var trackCenterY = 195
 var trackSlotWidth = 146
 var trackLength = 5
 
+var dotBaseline = trackCenterY - 150
+var slotDots = []
 
 Layer.root.image = new Image({name: "bg"})
 
@@ -24,8 +26,30 @@ if (!soundEnabled) {
 // Using an action behavior instead of a heartbeat because heartbeats still don't dispose properly on reload. :/
 Layer.root.behaviors = [
 	new ActionBehavior({handler: function() {
+		var totalPhraseLength = 8
 		var beatLength = 0.3
+		var dotAnimationLength = 0.1
 		var currentTimestamp = Timestamp.currentTimestamp()
+
+		if (currentTimestamp - lastPlayTime > beatLength - dotAnimationLength) {
+			if (beatIndex < trackLength) {
+				var currentDot = slotDots[beatIndex]
+				currentDot.animators.scale.target = new Point({x: 1, y: 1})
+				currentDot.animators.y.target = dotBaseline + 30
+				currentDot.animators.alpha.target = 1
+			}
+
+			var lastBeatIndex = beatIndex - 1
+			if (lastBeatIndex < 0) {
+				lastBeatIndex = totalPhraseLength - 1
+			}
+			if (lastBeatIndex < trackLength) {
+				var currentDot = slotDots[lastBeatIndex]
+				currentDot.animators.scale.target = new Point({x: 0, y: 0})
+				currentDot.animators.y.target = dotBaseline
+				currentDot.animators.alpha.target = 0
+			}
+		}
 		if (currentTimestamp - lastPlayTime > beatLength) {
 			trackEntries.forEach(function (value, key) {
 				var beatWithinSnippet = beatIndex - value
@@ -37,8 +61,12 @@ Layer.root.behaviors = [
 			})
 
 			lastPlayTime += beatLength
+			if (beatIndex >= trackLength) {
+				var sound = new Sound({name: "tee"})
+				sound.play()
+			}
 
-			beatIndex = (beatIndex + 1) % 8
+			beatIndex = (beatIndex + 1) % totalPhraseLength
 		}
 	}})
 ]
@@ -50,8 +78,30 @@ var twoSnippet = makeSnippet("2 Brick", 2, ["cat_gsharp", "cat_e"])
 twoSnippet.layer.position = Layer.root.position
 twoSnippet.layer.y += 200
 
-var highestSnippetZ = 0
+makeSlotDots()
 
+function makeSlotDots() {
+	for (var slotIndex = 0; slotIndex < trackLength; slotIndex++) {
+		var dot = new Layer()
+		dot.backgroundColor = Color.gray
+		dot.width = dot.height = 20
+		dot.cornerRadius = dot.width / 2.0
+		dot.scale = 0.001
+		dot.alpha = 0
+		dot.y = trackCenterY - 150
+		dot.x = firstTrackSlotX + trackSlotWidth * (slotIndex + 0.5)
+
+		dot.animators.scale.springSpeed = 60
+		dot.animators.scale.springBounciness = 0
+		dot.animators.y.springSpeed = 50
+		dot.animators.y.springBounciness = 0
+		dot.animators.alpha.springSpeed = 40
+		dot.animators.alpha.springBounciness = 0
+		slotDots.push(dot)
+	}
+}
+
+var highestSnippetZ = 0
 function makeSnippet(name, size, samples) {
 	var layer = new Layer({imageName: name})
 	var snippet = {layer: layer, blockCount: size, samples: samples}
