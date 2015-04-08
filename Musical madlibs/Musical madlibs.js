@@ -67,9 +67,9 @@ function makeSnippet(name, size) {
 				var snippetCenter = snippetOrigin.y + layer.height / 2.0
 				var newOriginY = null
 				if (snippetCenter > trackCenterY) {
-					newOriginY = trackCenterY + 75
+					newOriginY = trackCenterY + 65
 				} else {
-					newOriginY = trackCenterY - 75 - layer.height
+					newOriginY = trackCenterY - 65 - layer.height
 				}
 				newOrigin = new Point({x: snippetOrigin.x, y: newOriginY})
 			}
