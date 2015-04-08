@@ -58,11 +58,11 @@ var firstTrackSlotX = 146
 var trackSlotWidth = 146
 
 function snapOriginToTrack(origin, size, blockCount) {
-	if (origin.y > 60 && (origin.y + size.height) < 330 && origin.x > 145 && (origin.x + size.width) < 900) {
-		var distanceFromTrackStart = origin.x - firstTrackSlotX
-		var roundedSlotOriginX = Math.floor(distanceFromTrackStart / trackSlotWidth) * trackSlotWidth + firstTrackSlotX
-		// Center within its slots
+	if (origin.y > 60 && (origin.y + size.height) < 330 && origin.x > 130 && (origin.x + size.width) < 900) {
+		var distanceFromTrackStart = Math.max(origin.x - firstTrackSlotX, 0)
 		var shiftWithinSlot = ((blockCount * trackSlotWidth) - size.width) / 2.0
+		var roundedSlotOriginX = Math.round((distanceFromTrackStart - shiftWithinSlot) / trackSlotWidth) * trackSlotWidth + firstTrackSlotX
+		// Center within its slots
 		var originX = roundedSlotOriginX + shiftWithinSlot
 		return new Point({x: originX, y: 145})
 	} else {
