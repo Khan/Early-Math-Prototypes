@@ -16,7 +16,7 @@ var beatIndex = 0
 
 var trackEntries = new Map()
 
-var soundEnabled = false
+var soundEnabled = true
 if (!soundEnabled) {
 	Sound.prototype.play = function() {}
 }
@@ -24,18 +24,18 @@ if (!soundEnabled) {
 // Using an action behavior instead of a heartbeat because heartbeats still don't dispose properly on reload. :/
 Layer.root.behaviors = [
 	new ActionBehavior({handler: function() {
-		var beatLength = 0.5
+		var beatLength = 0.3
 		var currentTimestamp = Timestamp.currentTimestamp()
 		if (currentTimestamp - lastPlayTime > beatLength) {
 			trackEntries.forEach(function (value, key) {
 				var beatWithinSnippet = beatIndex - value
-				if (beatWithinSnippet >= 0 && beatWithinSnippet < key.blockCount) {
-					console.log("Playing " + value + "@" + beatWithinSnippet)
+				if (beatWithinSnippet >= 0 && beatWithinSnippet < key.blockCount && key.samples !== undefined) {
+					// var sound = new Sound({name: (beatIndex < 5 ? "ta" : "tee")})
+					var sound = new Sound({name: key.samples[beatWithinSnippet]})
+					sound.play()
 				}
 			})
 
-			var sound = new Sound({name: (beatIndex < 5 ? "ta" : "tee")})
-			sound.play()
 			lastPlayTime += beatLength
 
 			beatIndex = (beatIndex + 1) % 8
@@ -43,18 +43,18 @@ Layer.root.behaviors = [
 	}})
 ]
 
-var threeSnippet = makeSnippet("3 Brick", 3)
+var threeSnippet = makeSnippet("3 Brick", 3, ["cat_e", "cat_gsharp", "cat_b"])
 threeSnippet.layer.position = Layer.root.position
 
-var twoSnippet = makeSnippet("2 Brick", 2)
+var twoSnippet = makeSnippet("2 Brick", 2, ["cat_gsharp", "cat_e"])
 twoSnippet.layer.position = Layer.root.position
 twoSnippet.layer.y += 200
 
 var highestSnippetZ = 0
 
-function makeSnippet(name, size) {
+function makeSnippet(name, size, samples) {
 	var layer = new Layer({imageName: name})
-	var snippet = {layer: layer, blockCount: size}
+	var snippet = {layer: layer, blockCount: size, samples: samples}
 
 	layer.animators.scale.springSpeed = 40
 	layer.animators.scale.springBounciness = 4
