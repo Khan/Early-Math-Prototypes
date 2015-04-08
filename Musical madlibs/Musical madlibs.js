@@ -2,6 +2,13 @@ if (Layer.root.width != 1024) {
 	throw "This prototype is meant to be run in landscape on an iPad!"
 }
 
+
+var firstTrackSlotX = 146
+var trackCenterY = 195
+var trackSlotWidth = 146
+var trackLength = 5
+
+
 Layer.root.image = new Image({name: "bg"})
 
 var lastPlayTime = Timestamp.currentTimestamp()
@@ -20,6 +27,13 @@ Layer.root.behaviors = [
 		var beatLength = 0.5
 		var currentTimestamp = Timestamp.currentTimestamp()
 		if (currentTimestamp - lastPlayTime > beatLength) {
+			trackEntries.forEach(function (value, key) {
+				var beatWithinSnippet = beatIndex - value
+				if (beatWithinSnippet >= 0 && beatWithinSnippet < key.blockCount) {
+					console.log("Playing " + value + "@" + beatWithinSnippet)
+				}
+			})
+
 			var sound = new Sound({name: (beatIndex < 5 ? "ta" : "tee")})
 			sound.play()
 			lastPlayTime += beatLength
@@ -82,11 +96,6 @@ function makeSnippet(name, size) {
 
 	return snippet
 }
-
-var firstTrackSlotX = 146
-var trackCenterY = 195
-var trackSlotWidth = 146
-var trackLength = 5
 
 function canPutSnippetAtSlot(snippet, slot) {
 	var result = true
