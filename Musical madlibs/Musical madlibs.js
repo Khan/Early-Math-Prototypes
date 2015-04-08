@@ -57,15 +57,27 @@ function makeSnippet(name, size) {
 var firstTrackSlotX = 146
 var trackCenterY = 195
 var trackSlotWidth = 146
+var trackLength = 5
+
+function offsetWithinTrackSlot(snippetWidth, blockCount) {
+	return ((blockCount * trackSlotWidth) - snippetWidth) / 2.0
+}
+
+function trackSlotForSnippetOrigin(snippetOrigin, snippetSize, blockCount) {
+	var shiftWithinSlot = offsetWithinTrackSlot(snippetSize.width, blockCount)
+	var distanceFromTrackStart = Math.max(snippetOrigin.x - firstTrackSlotX, 0)
+	return Math.round((distanceFromTrackStart - shiftWithinSlot) / trackSlotWidth)
+}
 
 function snapOriginToTrack(origin, size, blockCount) {
 	if (origin.y > 60 && (origin.y + size.height) < 330 && origin.x > 130 && (origin.x + size.width) < 900) {
-		var distanceFromTrackStart = Math.max(origin.x - firstTrackSlotX, 0)
-		// Center the blocks within its slots
-		var shiftWithinSlot = ((blockCount * trackSlotWidth) - size.width) / 2.0
-		var roundedSlotOriginX = Math.round((distanceFromTrackStart - shiftWithinSlot) / trackSlotWidth) * trackSlotWidth + firstTrackSlotX
-		var originX = roundedSlotOriginX + shiftWithinSlot
-		return new Point({x: originX, y: trackCenterY - size.height / 2.0})
+		var trackSlot = trackSlotForSnippetOrigin(origin, size, blockCount)
+		if (trackSlot >= 0 && trackSlot <= (trackLength - blockCount)) {
+			var originX = trackSlot * trackSlotWidth + firstTrackSlotX + offsetWithinTrackSlot(size.width, blockCount)
+			return new Point({x: originX, y: trackCenterY - size.height / 2.0})
+		} else {
+			return origin
+		}
 	} else {
 		return origin
 	}
