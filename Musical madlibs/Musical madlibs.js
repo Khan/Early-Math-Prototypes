@@ -7,6 +7,8 @@ Layer.root.image = new Image({name: "bg"})
 var lastPlayTime = Timestamp.currentTimestamp()
 var beatIndex = 0
 
+var trackEntries = new Map()
+
 var soundEnabled = false
 if (!soundEnabled) {
 	Sound.prototype.play = function() {}
@@ -28,30 +30,57 @@ Layer.root.behaviors = [
 ]
 
 var threeSnippet = makeSnippet("3 Brick", 3)
-threeSnippet.position = Layer.root.position
+threeSnippet.layer.position = Layer.root.position
 
 var twoSnippet = makeSnippet("2 Brick", 2)
-twoSnippet.position = Layer.root.position
-twoSnippet.y += 200
+twoSnippet.layer.position = Layer.root.position
+twoSnippet.layer.y += 200
+
+var highestSnippetZ = 0
 
 function makeSnippet(name, size) {
 	var layer = new Layer({imageName: name})
+	var snippet = {layer: layer, blockCount: size}
+
 	layer.animators.scale.springSpeed = 40
 	layer.animators.scale.springBounciness = 4
 	layer.animators.position.springSpeed = 40
 	layer.animators.position.springBounciness = 3
+
 	layer.touchBeganHandler = function(sequence) {
+		highestSnippetZ++
+		layer.zPosition = highestSnippetZ
 		layer.animators.scale.target = new Point({x: 1.05, y: 1.05})
 	}
 	layer.touchMovedHandler = function(sequence) {
 		layer.position = layer.position.add(sequence.currentSample.globalLocation.subtract(sequence.previousSample.globalLocation))
 	}
 	layer.touchEndedHandler = function(sequence) {
-		var newOrigin = snapOriginToTrack(new Point({x: layer.position.x - layer.width / 2.0, y: layer.position.y - layer.height / 2.0}), layer.bounds.size, size)
-		layer.animators.position.target = new Point({x: newOrigin.x + layer.width / 2.0, y: newOrigin.y + layer.height / 2.0})
+		var snippetOrigin = new Point({x: layer.position.x - layer.width / 2.0, y: layer.position.y - layer.height / 2.0})
+		var slot = trackSlotForSnippetOrigin(snippetOrigin, layer.bounds.size, size)
+		if (slot !== undefined) {
+			var newOrigin = originForTrackSlot(slot, layer.bounds.size, size)
+			if (canPutSnippetAtSlot(snippet, slot)) {
+				trackEntries.set(snippet, slot)
+			} else {
+				trackEntries.delete(snippet)
+				var snippetCenter = snippetOrigin.y + layer.height / 2.0
+				var newOriginY = null
+				if (snippetCenter > trackCenterY) {
+					newOriginY = trackCenterY + 75
+				} else {
+					newOriginY = trackCenterY - 75 - layer.height
+				}
+				newOrigin = new Point({x: snippetOrigin.x, y: newOriginY})
+			}
+			layer.animators.position.target = new Point({x: newOrigin.x + layer.width / 2.0, y: newOrigin.y + layer.height / 2.0})
+		} else {
+			trackEntries.delete(snippet)
+		}
 		layer.animators.scale.target = new Point({x: 1.0, y: 1.0})
 	}
-	return layer
+
+	return snippet
 }
 
 var firstTrackSlotX = 146
@@ -59,26 +88,39 @@ var trackCenterY = 195
 var trackSlotWidth = 146
 var trackLength = 5
 
+function canPutSnippetAtSlot(snippet, slot) {
+	var result = true
+	trackEntries.forEach(function(value, key) {
+		if (key === snippet) {
+			return
+		}
+		var isLeftOfCurrentSnippet = (slot + snippet.blockCount) <= value
+		var isRightOfCurrentSnippet = slot >= (value + key.blockCount)
+		result = result && (isLeftOfCurrentSnippet || isRightOfCurrentSnippet)
+	})
+	return result
+}
+
 function offsetWithinTrackSlot(snippetWidth, blockCount) {
 	return ((blockCount * trackSlotWidth) - snippetWidth) / 2.0
 }
 
 function trackSlotForSnippetOrigin(snippetOrigin, snippetSize, blockCount) {
-	var shiftWithinSlot = offsetWithinTrackSlot(snippetSize.width, blockCount)
-	var distanceFromTrackStart = Math.max(snippetOrigin.x - firstTrackSlotX, 0)
-	return Math.round((distanceFromTrackStart - shiftWithinSlot) / trackSlotWidth)
-}
-
-function snapOriginToTrack(origin, size, blockCount) {
-	if (origin.y > 60 && (origin.y + size.height) < 330 && origin.x > 130 && (origin.x + size.width) < 900) {
-		var trackSlot = trackSlotForSnippetOrigin(origin, size, blockCount)
+	if (snippetOrigin.y > 60 && (snippetOrigin.y + snippetSize.height) < 330 && snippetOrigin.x > 130 && (snippetOrigin.x + snippetSize.width) < 900) {
+		var shiftWithinSlot = offsetWithinTrackSlot(snippetSize.width, blockCount)
+		var distanceFromTrackStart = Math.max(snippetOrigin.x - firstTrackSlotX, 0)
+		var trackSlot = Math.round((distanceFromTrackStart - shiftWithinSlot) / trackSlotWidth)
 		if (trackSlot >= 0 && trackSlot <= (trackLength - blockCount)) {
-			var originX = trackSlot * trackSlotWidth + firstTrackSlotX + offsetWithinTrackSlot(size.width, blockCount)
-			return new Point({x: originX, y: trackCenterY - size.height / 2.0})
+			return trackSlot
 		} else {
-			return origin
+			return undefined
 		}
 	} else {
-		return origin
+		return undefined
 	}
+}
+
+function originForTrackSlot(trackSlot, size, blockCount) {
+	var originX = trackSlot * trackSlotWidth + firstTrackSlotX + offsetWithinTrackSlot(size.width, blockCount)
+	return new Point({x: originX, y: trackCenterY - size.height / 2.0})
 }
