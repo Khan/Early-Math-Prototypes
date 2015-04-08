@@ -18,7 +18,7 @@ var beatIndex = 0
 
 var trackEntries = new Map()
 
-var soundEnabled = true
+var soundEnabled = false
 if (!soundEnabled) {
 	Sound.prototype.play = function() {}
 }
@@ -51,21 +51,22 @@ Layer.root.behaviors = [
 			}
 		}
 		if (currentTimestamp - lastPlayTime > beatLength) {
+			var foundSound = false
 			trackEntries.forEach(function (value, key) {
 				var beatWithinSnippet = beatIndex - value
-				if (beatWithinSnippet >= 0 && beatWithinSnippet < key.blockCount && key.samples !== undefined) {
+				if (!foundSound && beatWithinSnippet >= 0 && beatWithinSnippet < key.blockCount && key.samples !== undefined) {
 					// var sound = new Sound({name: (beatIndex < 5 ? "ta" : "tee")})
 					var sound = new Sound({name: key.samples[beatWithinSnippet]})
 					sound.play()
+					foundSound = true
 				}
 			})
-
-			lastPlayTime += beatLength
-			if (beatIndex >= trackLength) {
-				var sound = new Sound({name: "tee"})
+			if (!foundSound) {
+				var sound = new Sound({name: beatIndex < trackLength ? "ta" : "tee"})
 				sound.play()
 			}
 
+			lastPlayTime += beatLength
 			beatIndex = (beatIndex + 1) % totalPhraseLength
 		}
 	}})
