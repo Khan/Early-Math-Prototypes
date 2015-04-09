@@ -52,7 +52,6 @@ Layer.root.behaviors = [
 			trackEntries.forEach(function (value, key) {
 				var beatWithinSnippet = beatIndex - value
 				if (!foundSound && beatWithinSnippet >= 0 && beatWithinSnippet < key.blockCount && key.samples !== undefined) {
-					// var sound = new Sound({name: (beatIndex < 5 ? "ta" : "tee")})
 					var sound = new Sound({name: key.samples[beatWithinSnippet]})
 					sound.play()
 					foundSound = true
@@ -72,7 +71,7 @@ Layer.root.behaviors = [
 var threeSnippet = makeSnippet("3 Brick", 3, ["cat_e", "cat_gsharp", "cat_b"])
 threeSnippet.layer.position = Layer.root.position
 
-var twoSnippet = makeSnippet("2 Brick", 2, ["cat_gsharp", "cat_e"])
+var twoSnippet = makeSnippet("2 Brick", 2, ["dog_gsharp", "dog_e"])
 twoSnippet.layer.position = Layer.root.position
 twoSnippet.layer.y += 200
 
