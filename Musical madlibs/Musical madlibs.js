@@ -3,12 +3,14 @@ if (Layer.root.width != 1024) {
 }
 
 
-var firstTrackSlotX = 146
-var trackCenterY = 195
-var trackSlotWidth = 146
-var trackLength = 5
+var firstTrackSlotX = 31
+var trackCenterY = 107
+var trackSlotWidth = 120
 
-var dotBaseline = trackCenterY - 150
+var openTrackLength = 5
+var totalTrackLength = 8
+
+var dotBaseline = trackCenterY - 110
 var slotDots = []
 
 Layer.root.image = new Image({name: "bg"})
@@ -18,7 +20,7 @@ var beatIndex = 0
 
 var trackEntries = new Map()
 
-var soundEnabled = false
+var soundEnabled = true
 if (!soundEnabled) {
 	Sound.prototype.play = function() {}
 }
@@ -26,29 +28,24 @@ if (!soundEnabled) {
 // Using an action behavior instead of a heartbeat because heartbeats still don't dispose properly on reload. :/
 Layer.root.behaviors = [
 	new ActionBehavior({handler: function() {
-		var totalPhraseLength = 8
 		var beatLength = 0.3
-		var dotAnimationLength = 0.1
+		var dotAnimationLength = 0.18
 		var currentTimestamp = Timestamp.currentTimestamp()
 
 		if (currentTimestamp - lastPlayTime > beatLength - dotAnimationLength) {
-			if (beatIndex < trackLength) {
-				var currentDot = slotDots[beatIndex]
-				currentDot.animators.scale.target = new Point({x: 1, y: 1})
-				currentDot.animators.y.target = dotBaseline + 30
-				currentDot.animators.alpha.target = 1
-			}
+			var currentDot = slotDots[beatIndex]
+			currentDot.animators.scale.target = new Point({x: 1, y: 1})
+			currentDot.animators.y.target = dotBaseline + 30
+			currentDot.animators.alpha.target = 1
 
 			var lastBeatIndex = beatIndex - 1
 			if (lastBeatIndex < 0) {
-				lastBeatIndex = totalPhraseLength - 1
+				lastBeatIndex = totalTrackLength - 1
 			}
-			if (lastBeatIndex < trackLength) {
-				var currentDot = slotDots[lastBeatIndex]
-				currentDot.animators.scale.target = new Point({x: 0, y: 0})
-				currentDot.animators.y.target = dotBaseline
-				currentDot.animators.alpha.target = 0
-			}
+			var lastDot = slotDots[lastBeatIndex]
+			lastDot.animators.scale.target = new Point({x: 0, y: 0})
+			lastDot.animators.y.target = dotBaseline
+			lastDot.animators.alpha.target = 0
 		}
 		if (currentTimestamp - lastPlayTime > beatLength) {
 			var foundSound = false
@@ -62,12 +59,12 @@ Layer.root.behaviors = [
 				}
 			})
 			if (!foundSound) {
-				var sound = new Sound({name: beatIndex < trackLength ? "ta" : "tee"})
+				var sound = new Sound({name: beatIndex < openTrackLength ? "ta" : "tee"})
 				sound.play()
 			}
 
 			lastPlayTime += beatLength
-			beatIndex = (beatIndex + 1) % totalPhraseLength
+			beatIndex = (beatIndex + 1) % totalTrackLength
 		}
 	}})
 ]
@@ -82,7 +79,7 @@ twoSnippet.layer.y += 200
 makeSlotDots()
 
 function makeSlotDots() {
-	for (var slotIndex = 0; slotIndex < trackLength; slotIndex++) {
+	for (var slotIndex = 0; slotIndex < totalTrackLength; slotIndex++) {
 		var dot = new Layer()
 		dot.backgroundColor = Color.gray
 		dot.width = dot.height = 20
@@ -91,6 +88,11 @@ function makeSlotDots() {
 		dot.alpha = 0
 		dot.y = trackCenterY - 150
 		dot.x = firstTrackSlotX + trackSlotWidth * (slotIndex + 0.5)
+
+		if (slotIndex >= openTrackLength) {
+			dot.border = new Border({width: 2, color: dot.backgroundColor})
+			dot.backgroundColor = Color.clear
+		}
 
 		dot.animators.scale.springSpeed = 60
 		dot.animators.scale.springBounciness = 0
@@ -113,6 +115,7 @@ function makeSnippet(name, size, samples) {
 	layer.animators.position.springBounciness = 3
 
 	layer.touchBeganHandler = function(sequence) {
+		trackEntries.delete(snippet)
 		highestSnippetZ++
 		layer.zPosition = highestSnippetZ
 		layer.animators.scale.target = new Point({x: 1.05, y: 1.05})
@@ -128,19 +131,10 @@ function makeSnippet(name, size, samples) {
 			if (canPutSnippetAtSlot(snippet, slot)) {
 				trackEntries.set(snippet, slot)
 			} else {
-				trackEntries.delete(snippet)
 				var snippetCenter = snippetOrigin.y + layer.height / 2.0
-				var newOriginY = null
-				if (snippetCenter > trackCenterY) {
-					newOriginY = trackCenterY + 65
-				} else {
-					newOriginY = trackCenterY - 65 - layer.height
-				}
-				newOrigin = new Point({x: snippetOrigin.x, y: newOriginY})
+				newOrigin = new Point({x: snippetOrigin.x, y: trackCenterY + layer.height * 0.75})
 			}
 			layer.animators.position.target = new Point({x: newOrigin.x + layer.width / 2.0, y: newOrigin.y + layer.height / 2.0})
-		} else {
-			trackEntries.delete(snippet)
 		}
 		layer.animators.scale.target = new Point({x: 1.0, y: 1.0})
 	}
@@ -150,6 +144,9 @@ function makeSnippet(name, size, samples) {
 
 function canPutSnippetAtSlot(snippet, slot) {
 	var result = true
+	if (slot + snippet.blockCount > openTrackLength) {
+		return false
+	}
 	trackEntries.forEach(function(value, key) {
 		if (key === snippet) {
 			return
@@ -166,11 +163,11 @@ function offsetWithinTrackSlot(snippetWidth, blockCount) {
 }
 
 function trackSlotForSnippetOrigin(snippetOrigin, snippetSize, blockCount) {
-	if (snippetOrigin.y > 60 && (snippetOrigin.y + snippetSize.height) < 330 && snippetOrigin.x > 130 && (snippetOrigin.x + snippetSize.width) < 900) {
+	if (snippetOrigin.y > (trackCenterY - snippetSize.height * 1.25) && (snippetOrigin.y + snippetSize.height) < (trackCenterY + snippetSize.height * 1.25)) {
 		var shiftWithinSlot = offsetWithinTrackSlot(snippetSize.width, blockCount)
 		var distanceFromTrackStart = Math.max(snippetOrigin.x - firstTrackSlotX, 0)
 		var trackSlot = Math.round((distanceFromTrackStart - shiftWithinSlot) / trackSlotWidth)
-		if (trackSlot >= 0 && trackSlot <= (trackLength - blockCount)) {
+		if (trackSlot >= 0 && trackSlot <= (totalTrackLength - blockCount)) {
 			return trackSlot
 		} else {
 			return undefined
