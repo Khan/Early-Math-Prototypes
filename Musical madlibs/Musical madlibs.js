@@ -20,7 +20,7 @@ var beatIndex = 0
 
 var trackEntries = new Map()
 
-var soundEnabled = true
+var soundEnabled = false
 if (!soundEnabled) {
 	Sound.prototype.play = function() {}
 }
@@ -68,12 +68,20 @@ Layer.root.behaviors = [
 	}})
 ]
 
-var threeSnippet = makeSnippet("3 Brick", 3, ["cat_e", "cat_gsharp", "cat_b"])
+var threeSnippet = makeSnippet("3 Brick - orange - C E G", 3, ["cat_e", "cat_gsharp", "cat_b"])
 threeSnippet.layer.position = Layer.root.position
 
-var twoSnippet = makeSnippet("2 Brick", 2, ["dog_gsharp", "dog_e"])
+var twoSnippet = makeSnippet("2 Brick - blue - E C", 2, ["dog_gsharp", "dog_e"])
 twoSnippet.layer.position = Layer.root.position
-twoSnippet.layer.y += 200
+twoSnippet.layer.y += 150
+
+var oneSnippet = makeSnippet("1 Brick - orange - C8", 1, ["cat_e8"])
+oneSnippet.layer.position = twoSnippet.layer.position
+oneSnippet.layer.y += 150
+
+var twoSnippetAlt = makeSnippet("2 Brick - orange - F E", 2, ["cat_a", "cat_gsharp"])
+twoSnippetAlt.layer.position = twoSnippet.layer.position
+twoSnippetAlt.layer.x += 300
 
 makeSlotDots()
 
