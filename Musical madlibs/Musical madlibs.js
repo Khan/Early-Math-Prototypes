@@ -3,9 +3,9 @@ if (Layer.root.width != 1024) {
 }
 
 
-var firstTrackSlotX = 31
-var trackCenterY = 107
-var trackSlotWidth = 120
+var firstTrackSlotX = 33
+var trackCenterY = 79
+var trackSlotWidth = 118
 
 var openTrackLength = 5
 var totalTrackLength = 8
@@ -13,7 +13,7 @@ var totalTrackLength = 8
 var dotBaseline = trackCenterY - 110
 var slotDots = []
 
-Layer.root.image = new Image({name: "bg"})
+// Layer.root.image = new Image({name: "bg"})
 
 var lastPlayTime = Timestamp.currentTimestamp()
 var beatIndex = 0
@@ -84,32 +84,10 @@ twoSnippetAlt.layer.position = twoSnippet.layer.position
 twoSnippetAlt.layer.x += 300
 
 makeSlotDots()
+makeTrack(openTrackLength, totalTrackLength)
 
-function makeSlotDots() {
-	for (var slotIndex = 0; slotIndex < totalTrackLength; slotIndex++) {
-		var dot = new Layer()
-		dot.backgroundColor = Color.gray
-		dot.width = dot.height = 20
-		dot.cornerRadius = dot.width / 2.0
-		dot.scale = 0.001
-		dot.alpha = 0
-		dot.y = trackCenterY - 150
-		dot.x = firstTrackSlotX + trackSlotWidth * (slotIndex + 0.5)
-
-		if (slotIndex >= openTrackLength) {
-			dot.border = new Border({width: 2, color: dot.backgroundColor})
-			dot.backgroundColor = Color.clear
-		}
-
-		dot.animators.scale.springSpeed = 60
-		dot.animators.scale.springBounciness = 0
-		dot.animators.y.springSpeed = 50
-		dot.animators.y.springBounciness = 0
-		dot.animators.alpha.springSpeed = 40
-		dot.animators.alpha.springBounciness = 0
-		slotDots.push(dot)
-	}
-}
+//============================================================================================
+// Snippets
 
 var highestSnippetZ = 0
 function makeSnippet(name, size, samples) {
@@ -148,6 +126,59 @@ function makeSnippet(name, size, samples) {
 
 	return snippet
 }
+
+//============================================================================================
+// Tracks
+
+function makeTrack(openLength, totalLength) {
+	for (var slotIndex = 0; slotIndex < totalLength; slotIndex++) {
+		var slot = makeSlot(slotIndex < openLength)
+		slot.x = firstTrackSlotX + (slotIndex + 0.5) * trackSlotWidth
+		slot.y = trackCenterY
+	}
+}
+
+function makeSlot(isOpen) {
+	var slot = new Layer()
+	if (isOpen) {
+		slot.border = new Border({width: 4, color: new Color({white: 0.92})})
+	} else {
+		slot.backgroundColor = new Color({white: 0.984})
+	}
+	slot.width = slot.height = 87
+	slot.cornerRadius = 22.5
+	slot.userInteractionEnabled = false
+	return slot
+}
+
+function makeSlotDots() {
+	for (var slotIndex = 0; slotIndex < totalTrackLength; slotIndex++) {
+		var dot = new Layer()
+		dot.backgroundColor = Color.gray
+		dot.width = dot.height = 20
+		dot.cornerRadius = dot.width / 2.0
+		dot.scale = 0.001
+		dot.alpha = 0
+		dot.y = trackCenterY - 150
+		dot.x = firstTrackSlotX + trackSlotWidth * (slotIndex + 0.5)
+
+		if (slotIndex >= openTrackLength) {
+			dot.border = new Border({width: 2, color: dot.backgroundColor})
+			dot.backgroundColor = Color.clear
+		}
+
+		dot.animators.scale.springSpeed = 60
+		dot.animators.scale.springBounciness = 0
+		dot.animators.y.springSpeed = 50
+		dot.animators.y.springBounciness = 0
+		dot.animators.alpha.springSpeed = 40
+		dot.animators.alpha.springBounciness = 0
+		slotDots.push(dot)
+	}
+}
+
+//============================================================================================
+// Snippet + slot arithmetic
 
 function canPutSnippetAtSlot(snippet, slot) {
 	var result = true
