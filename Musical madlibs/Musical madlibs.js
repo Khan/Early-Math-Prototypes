@@ -2,27 +2,53 @@ if (Layer.root.width != 1024) {
 	throw "This prototype is meant to be run in landscape on an iPad!"
 }
 
-Layer.root.backgroundColor = new Color({white: 0.886})
+// Global sound switch: disable to avoid annoyance during development!
+var soundEnabled = false
 
 var firstTrackSlotX = 23
 var trackCenterY = 69
 var trackSlotWidth = 118
+var dotBaseline = trackCenterY - 85
 
 var openTrackLength = 5
 var totalTrackLength = 8
 
-var dotBaseline = trackCenterY - 110
 var slotDots = []
+var trackEntries = new Map()
+
+
+Layer.root.backgroundColor = new Color({white: 0.886})
+
+var track = makeTrack(openTrackLength, totalTrackLength)
+
+var threeSnippet = makeSnippet("3 Brick - orange - C E G", 3, ["cat_e", "cat_gsharp", "cat_b"])
+threeSnippet.layer.position = Layer.root.position
+threeSnippet.layer.parent = track
+
+var twoSnippet = makeSnippet("2 Brick - blue - E C", 2, ["dog_gsharp", "dog_e"])
+twoSnippet.layer.position = Layer.root.position
+twoSnippet.layer.y += 150
+twoSnippet.layer.parent = track
+
+var oneSnippet = makeSnippet("1 Brick - orange - C8", 1, ["cat_e8"])
+oneSnippet.layer.position = twoSnippet.layer.position
+oneSnippet.layer.y += 150
+oneSnippet.layer.parent = track
+
+var twoSnippetAlt = makeSnippet("2 Brick - orange - F E", 2, ["cat_a", "cat_gsharp"])
+twoSnippetAlt.layer.position = twoSnippet.layer.position
+twoSnippetAlt.layer.x += 300
+twoSnippetAlt.layer.parent = track
+
+makeSlotDots()
+
+//============================================================================================
+// Audio
+
+if (!soundEnabled) { Sound.prototype.play = function() {} }
 
 var lastPlayTime = Timestamp.currentTimestamp()
 var beatIndex = 0
-
-var trackEntries = new Map()
-
-var soundEnabled = false
-if (!soundEnabled) {
-	Sound.prototype.play = function() {}
-}
 
 // Using an action behavior instead of a heartbeat because heartbeats still don't dispose properly on reload. :/
 Layer.root.behaviors = [
@@ -67,28 +93,6 @@ Layer.root.behaviors = [
 	}})
 ]
 
-var track = makeTrack(openTrackLength, totalTrackLength)
-
-var threeSnippet = makeSnippet("3 Brick - orange - C E G", 3, ["cat_e", "cat_gsharp", "cat_b"])
-threeSnippet.layer.position = Layer.root.position
-threeSnippet.layer.parent = track
-
-var twoSnippet = makeSnippet("2 Brick - blue - E C", 2, ["dog_gsharp", "dog_e"])
-twoSnippet.layer.position = Layer.root.position
-twoSnippet.layer.y += 150
-twoSnippet.layer.parent = track
-
-var oneSnippet = makeSnippet("1 Brick - orange - C8", 1, ["cat_e8"])
-oneSnippet.layer.position = twoSnippet.layer.position
-oneSnippet.layer.y += 150
-oneSnippet.layer.parent = track
-
-var twoSnippetAlt = makeSnippet("2 Brick - orange - F E", 2, ["cat_a", "cat_gsharp"])
-twoSnippetAlt.layer.position = twoSnippet.layer.position
-twoSnippetAlt.layer.x += 300
-twoSnippetAlt.layer.parent = track
-
-makeSlotDots()
 
 //============================================================================================
 // Snippets
@@ -179,15 +183,16 @@ function makeSlotDots() {
 	for (var slotIndex = 0; slotIndex < totalTrackLength; slotIndex++) {
 		var dot = new Layer()
 		dot.backgroundColor = Color.gray
-		dot.width = dot.height = 20
+		dot.width = dot.height = 13
 		dot.cornerRadius = dot.width / 2.0
 		dot.scale = 0.001
 		dot.alpha = 0
-		dot.y = trackCenterY - 150
+		dot.y = dotBaseline
 		dot.x = firstTrackSlotX + trackSlotWidth * (slotIndex + 0.5)
+		dot.parent = track
 
 		if (slotIndex >= openTrackLength) {
-			dot.border = new Border({width: 2, color: dot.backgroundColor})
+			dot.border = new Border({width: 1.5, color: dot.backgroundColor})
 			dot.backgroundColor = Color.clear
 		}
 
