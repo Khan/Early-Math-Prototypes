@@ -2,9 +2,10 @@ if (Layer.root.width != 1024) {
 	throw "This prototype is meant to be run in landscape on an iPad!"
 }
 
+Layer.root.backgroundColor = new Color({white: 0.886})
 
-var firstTrackSlotX = 33
-var trackCenterY = 79
+var firstTrackSlotX = 23
+var trackCenterY = 69
 var trackSlotWidth = 118
 
 var openTrackLength = 5
@@ -12,8 +13,6 @@ var totalTrackLength = 8
 
 var dotBaseline = trackCenterY - 110
 var slotDots = []
-
-// Layer.root.image = new Image({name: "bg"})
 
 var lastPlayTime = Timestamp.currentTimestamp()
 var beatIndex = 0
@@ -68,23 +67,28 @@ Layer.root.behaviors = [
 	}})
 ]
 
+var track = makeTrack(openTrackLength, totalTrackLength)
+
 var threeSnippet = makeSnippet("3 Brick - orange - C E G", 3, ["cat_e", "cat_gsharp", "cat_b"])
 threeSnippet.layer.position = Layer.root.position
+threeSnippet.layer.parent = track
 
 var twoSnippet = makeSnippet("2 Brick - blue - E C", 2, ["dog_gsharp", "dog_e"])
 twoSnippet.layer.position = Layer.root.position
 twoSnippet.layer.y += 150
+twoSnippet.layer.parent = track
 
 var oneSnippet = makeSnippet("1 Brick - orange - C8", 1, ["cat_e8"])
 oneSnippet.layer.position = twoSnippet.layer.position
 oneSnippet.layer.y += 150
+oneSnippet.layer.parent = track
 
 var twoSnippetAlt = makeSnippet("2 Brick - orange - F E", 2, ["cat_a", "cat_gsharp"])
 twoSnippetAlt.layer.position = twoSnippet.layer.position
 twoSnippetAlt.layer.x += 300
+twoSnippetAlt.layer.parent = track
 
 makeSlotDots()
-makeTrack(openTrackLength, totalTrackLength)
 
 //============================================================================================
 // Snippets
@@ -104,9 +108,12 @@ function makeSnippet(name, size, samples) {
 		highestSnippetZ++
 		layer.zPosition = highestSnippetZ
 		layer.animators.scale.target = new Point({x: 1.05, y: 1.05})
+		layer.initialPosition = layer.position
 	}
 	layer.touchMovedHandler = function(sequence) {
-		layer.position = layer.position.add(sequence.currentSample.globalLocation.subtract(sequence.previousSample.globalLocation))
+		var newPosition = layer.initialPosition.add(sequence.currentSample.globalLocation.subtract(sequence.firstSample.globalLocation))
+		var constrainedPosition = positionConstrainedWithinRect(layer, layer.parent.bounds)
+		layer.position = constrainedPosition.add(newPosition.subtract(constrainedPosition).divide(2))
 	}
 	layer.touchEndedHandler = function(sequence) {
 		var snippetOrigin = new Point({x: layer.position.x - layer.width / 2.0, y: layer.position.y - layer.height / 2.0})
@@ -120,6 +127,8 @@ function makeSnippet(name, size, samples) {
 				newOrigin = new Point({x: snippetOrigin.x, y: trackCenterY + layer.height * 0.75})
 			}
 			layer.animators.position.target = new Point({x: newOrigin.x + layer.width / 2.0, y: newOrigin.y + layer.height / 2.0})
+		} else {
+			layer.animators.position.target = positionConstrainedWithinRect(layer, layer.parent.bounds.inset({value: 20}))
 		}
 		layer.animators.scale.target = new Point({x: 1.0, y: 1.0})
 	}
@@ -127,15 +136,30 @@ function makeSnippet(name, size, samples) {
 	return snippet
 }
 
+function positionConstrainedWithinRect(layer, rect) {
+	var constrainedX = clip({value: layer.position.x, min: rect.origin.x + layer.frame.size.width / 2.0, max: rect.origin.x + rect.size.width - layer.frame.size.width / 2.0})
+	var constrainedY = clip({value: layer.position.y, min: rect.origin.y + layer.frame.size.height / 2.0, max: rect.origin.y + rect.size.height - layer.frame.size.height / 2.0})
+	return new Point({x: constrainedX, y: constrainedY})
+}
+
 //============================================================================================
 // Tracks
 
 function makeTrack(openLength, totalLength) {
+	var containerMargin = 10
+	var container = new Layer()
+	container.frame = Layer.root.bounds.inset({value: containerMargin})
+	container.backgroundColor = Color.white
+	container.cornerRadius = 22.5
+
 	for (var slotIndex = 0; slotIndex < totalLength; slotIndex++) {
 		var slot = makeSlot(slotIndex < openLength)
+		slot.parent = container
 		slot.x = firstTrackSlotX + (slotIndex + 0.5) * trackSlotWidth
 		slot.y = trackCenterY
 	}
+
+	return container
 }
 
 function makeSlot(isOpen) {
