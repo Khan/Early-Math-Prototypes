@@ -13,31 +13,25 @@ var dotBaseline = trackCenterY - 85
 var openTrackLength = 5
 var totalTrackLength = 8
 
-var trackEntries = new Map()
-
 
 Layer.root.backgroundColor = new Color({white: 0.886})
 
 var track = makeTrack(openTrackLength, totalTrackLength)
 
-var threeSnippet = makeSnippet("3 Brick - orange - C E G", 3, ["cat_e", "cat_gsharp", "cat_b"])
+var threeSnippet = makeSnippet("3 Brick - orange - C E G", 3, ["cat_e", "cat_gsharp", "cat_b"], track)
 threeSnippet.layer.position = Layer.root.position
-threeSnippet.layer.parent = track.layer
 
-var twoSnippet = makeSnippet("2 Brick - blue - E C", 2, ["dog_gsharp", "dog_e"])
+var twoSnippet = makeSnippet("2 Brick - blue - E C", 2, ["dog_gsharp", "dog_e"], track)
 twoSnippet.layer.position = Layer.root.position
 twoSnippet.layer.y += 150
-twoSnippet.layer.parent = track.layer
 
-var oneSnippet = makeSnippet("1 Brick - orange - C8", 1, ["cat_e8"])
+var oneSnippet = makeSnippet("1 Brick - orange - C8", 1, ["cat_e8"], track)
 oneSnippet.layer.position = twoSnippet.layer.position
 oneSnippet.layer.y += 150
-oneSnippet.layer.parent = track.layer
 
-var twoSnippetAlt = makeSnippet("2 Brick - orange - F E", 2, ["cat_a", "cat_gsharp"])
+var twoSnippetAlt = makeSnippet("2 Brick - orange - F E", 2, ["cat_a", "cat_gsharp"], track)
 twoSnippetAlt.layer.position = twoSnippet.layer.position
 twoSnippetAlt.layer.x += 300
-twoSnippetAlt.layer.parent = track.layer
 
 makeSlotDots()
 
@@ -74,7 +68,7 @@ Layer.root.behaviors = [
 		}
 		if (currentTimestamp - lastPlayTime > beatLength) {
 			var foundSound = false
-			trackEntries.forEach(function (value, key) {
+			currentTrack.trackEntries.forEach(function (value, key) {
 				var beatWithinSnippet = beatIndex - value
 				if (!foundSound && beatWithinSnippet >= 0 && beatWithinSnippet < key.blockCount && key.samples !== undefined) {
 					var sound = new Sound({name: key.samples[beatWithinSnippet]})
@@ -98,8 +92,8 @@ Layer.root.behaviors = [
 // Snippets
 
 var highestSnippetZ = 0
-function makeSnippet(name, size, samples) {
-	var layer = new Layer({imageName: name})
+function makeSnippet(name, size, samples, track) {
+	var layer = new Layer({imageName: name, parent: track.layer})
 	var snippet = {layer: layer, blockCount: size, samples: samples}
 
 	layer.animators.scale.springSpeed = 40
@@ -108,7 +102,7 @@ function makeSnippet(name, size, samples) {
 	layer.animators.position.springBounciness = 3
 
 	layer.touchBeganHandler = function(sequence) {
-		trackEntries.delete(snippet)
+		track.trackEntries.delete(snippet)
 		highestSnippetZ++
 		layer.zPosition = highestSnippetZ
 		layer.animators.scale.target = new Point({x: 1.05, y: 1.05})
@@ -124,8 +118,8 @@ function makeSnippet(name, size, samples) {
 		var slot = trackSlotForSnippetOrigin(snippetOrigin, layer.bounds.size, size)
 		if (slot !== undefined) {
 			var newOrigin = originForTrackSlot(slot, layer.bounds.size, size)
-			if (canPutSnippetAtSlot(snippet, slot)) {
-				trackEntries.set(snippet, slot)
+			if (canPutSnippetAtSlot(snippet, slot, track.trackEntries)) {
+				track.trackEntries.set(snippet, slot)
 			} else {
 				var snippetCenter = snippetOrigin.y + layer.height / 2.0
 				newOrigin = new Point({x: snippetOrigin.x, y: trackCenterY + layer.height * 0.75})
@@ -166,7 +160,7 @@ function makeTrack(openLength, totalLength) {
 
 	var slotDots = makeSlotDots(container, openLength, totalLength)
 
-	return {layer: container, slotDots: slotDots}
+	return {layer: container, slotDots: slotDots, trackEntries: new Map()}
 }
 
 function makeSlot(isOpen) {
@@ -214,7 +208,7 @@ function makeSlotDots(parentLayer, openLength, totalLength) {
 //============================================================================================
 // Snippet + slot arithmetic
 
-function canPutSnippetAtSlot(snippet, slot) {
+function canPutSnippetAtSlot(snippet, slot, trackEntries) {
 	var result = true
 	if (slot + snippet.blockCount > openTrackLength) {
 		return false
