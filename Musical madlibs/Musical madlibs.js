@@ -13,7 +13,6 @@ var dotBaseline = trackCenterY - 85
 var openTrackLength = 5
 var totalTrackLength = 8
 
-var slotDots = []
 var trackEntries = new Map()
 
 
@@ -23,22 +22,22 @@ var track = makeTrack(openTrackLength, totalTrackLength)
 
 var threeSnippet = makeSnippet("3 Brick - orange - C E G", 3, ["cat_e", "cat_gsharp", "cat_b"])
 threeSnippet.layer.position = Layer.root.position
-threeSnippet.layer.parent = track
+threeSnippet.layer.parent = track.layer
 
 var twoSnippet = makeSnippet("2 Brick - blue - E C", 2, ["dog_gsharp", "dog_e"])
 twoSnippet.layer.position = Layer.root.position
 twoSnippet.layer.y += 150
-twoSnippet.layer.parent = track
+twoSnippet.layer.parent = track.layer
 
 var oneSnippet = makeSnippet("1 Brick - orange - C8", 1, ["cat_e8"])
 oneSnippet.layer.position = twoSnippet.layer.position
 oneSnippet.layer.y += 150
-oneSnippet.layer.parent = track
+oneSnippet.layer.parent = track.layer
 
 var twoSnippetAlt = makeSnippet("2 Brick - orange - F E", 2, ["cat_a", "cat_gsharp"])
 twoSnippetAlt.layer.position = twoSnippet.layer.position
 twoSnippetAlt.layer.x += 300
-twoSnippetAlt.layer.parent = track
+twoSnippetAlt.layer.parent = track.layer
 
 makeSlotDots()
 
@@ -56,9 +55,10 @@ Layer.root.behaviors = [
 		var beatLength = 0.3
 		var dotAnimationLength = 0.18
 		var currentTimestamp = Timestamp.currentTimestamp()
+		var currentTrack = track
 
 		if (currentTimestamp - lastPlayTime > beatLength - dotAnimationLength) {
-			var currentDot = slotDots[beatIndex]
+			var currentDot = track.slotDots[beatIndex]
 			currentDot.animators.scale.target = new Point({x: 1, y: 1})
 			currentDot.animators.y.target = dotBaseline + 30
 			currentDot.animators.alpha.target = 1
@@ -67,7 +67,7 @@ Layer.root.behaviors = [
 			if (lastBeatIndex < 0) {
 				lastBeatIndex = totalTrackLength - 1
 			}
-			var lastDot = slotDots[lastBeatIndex]
+			var lastDot = track.slotDots[lastBeatIndex]
 			lastDot.animators.scale.target = new Point({x: 0, y: 0})
 			lastDot.animators.y.target = dotBaseline
 			lastDot.animators.alpha.target = 0
@@ -156,6 +156,7 @@ function makeTrack(openLength, totalLength) {
 	container.backgroundColor = Color.white
 	container.cornerRadius = 22.5
 
+	// Make all the slots.
 	for (var slotIndex = 0; slotIndex < totalLength; slotIndex++) {
 		var slot = makeSlot(slotIndex < openLength)
 		slot.parent = container
@@ -163,7 +164,9 @@ function makeTrack(openLength, totalLength) {
 		slot.y = trackCenterY
 	}
 
-	return container
+	var slotDots = makeSlotDots(container, openLength, totalLength)
+
+	return {layer: container, slotDots: slotDots}
 }
 
 function makeSlot(isOpen) {
@@ -179,8 +182,9 @@ function makeSlot(isOpen) {
 	return slot
 }
 
-function makeSlotDots() {
-	for (var slotIndex = 0; slotIndex < totalTrackLength; slotIndex++) {
+function makeSlotDots(parentLayer, openLength, totalLength) {
+	var slotDots = []
+	for (var slotIndex = 0; slotIndex < totalLength; slotIndex++) {
 		var dot = new Layer()
 		dot.backgroundColor = Color.gray
 		dot.width = dot.height = 13
@@ -189,9 +193,9 @@ function makeSlotDots() {
 		dot.alpha = 0
 		dot.y = dotBaseline
 		dot.x = firstTrackSlotX + trackSlotWidth * (slotIndex + 0.5)
-		dot.parent = track
+		dot.parent = parentLayer
 
-		if (slotIndex >= openTrackLength) {
+		if (slotIndex >= openLength) {
 			dot.border = new Border({width: 1.5, color: dot.backgroundColor})
 			dot.backgroundColor = Color.clear
 		}
@@ -204,6 +208,7 @@ function makeSlotDots() {
 		dot.animators.alpha.springBounciness = 0
 		slotDots.push(dot)
 	}
+	return slotDots
 }
 
 //============================================================================================
