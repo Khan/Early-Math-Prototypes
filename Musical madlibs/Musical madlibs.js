@@ -3,7 +3,7 @@ if (Layer.root.width != 1024) {
 }
 
 // Global sound switch: disable to avoid annoyance during development!
-var soundEnabled = false
+var soundEnabled = true
 
 var firstTrackSlotX = 23
 var trackCenterY = 69
@@ -18,6 +18,7 @@ var restColorUnselected = new Color({white: 0.863})
 
 var openTrackLength = 5
 var totalTrackLength = 8
+var track2Revealed = false
 
 var track = makeTrack(openTrackLength, totalTrackLength)
 
@@ -49,22 +50,27 @@ var beatIndex = 0
 // Using an action behavior instead of a heartbeat because heartbeats still don't dispose properly on reload. :/
 Layer.root.behaviors = [
 	new ActionBehavior({handler: function() {
+		var totalNumberOfBeats = totalTrackLength * (track2Revealed ? 2 : 1)
+
 		var beatLength = 0.3
 		var dotAnimationLength = 0.18
 		var currentTimestamp = Timestamp.currentTimestamp()
-		var currentTrack = track
+		var currentTrack = (beatIndex >= totalTrackLength) ? track2 : track
+
+		var beatIndexWithinTrack = beatIndex % totalTrackLength
 
 		if (currentTimestamp - lastPlayTime > beatLength - dotAnimationLength) {
-			var currentDot = track.slotDots[beatIndex]
+			var currentDot = currentTrack.slotDots[beatIndexWithinTrack]
 			currentDot.animators.scale.target = new Point({x: 1, y: 1})
 			currentDot.animators.y.target = dotBaseline + 30
 			currentDot.animators.alpha.target = 1
 
 			var lastBeatIndex = beatIndex - 1
 			if (lastBeatIndex < 0) {
-				lastBeatIndex = totalTrackLength - 1
+				lastBeatIndex = totalNumberOfBeats - 1
 			}
-			var lastDot = track.slotDots[lastBeatIndex]
+			var lastDotTrack = (lastBeatIndex >= totalTrackLength) ? track2 : track
+			var lastDot = lastDotTrack.slotDots[lastBeatIndex % totalTrackLength]
 			lastDot.animators.scale.target = new Point({x: 0, y: 0})
 			lastDot.animators.y.target = dotBaseline
 			lastDot.animators.alpha.target = 0
@@ -72,7 +78,7 @@ Layer.root.behaviors = [
 		if (currentTimestamp - lastPlayTime > beatLength) {
 			var foundSound = false
 			currentTrack.trackEntries.forEach(function (value, key) {
-				var beatWithinSnippet = beatIndex - value
+				var beatWithinSnippet = beatIndexWithinTrack - value
 				if (!foundSound && beatWithinSnippet >= 0 && beatWithinSnippet < key.blockCount && key.samples !== undefined) {
 					var sound = new Sound({name: key.samples[beatWithinSnippet]})
 					sound.play()
@@ -80,12 +86,14 @@ Layer.root.behaviors = [
 				}
 			})
 			if (!foundSound) {
-				var sound = new Sound({name: beatIndex < openTrackLength ? "ta" : "tee"})
-				sound.play()
+				if (beatIndexWithinTrack < openTrackLength) {
+					var sound = new Sound({name: "ta"})
+					sound.play()
+				}
 			}
 
 			lastPlayTime += beatLength
-			beatIndex = (beatIndex + 1) % totalTrackLength
+			beatIndex = (beatIndex + 1) % totalNumberOfBeats
 		}
 	}})
 ]
@@ -170,7 +178,7 @@ function makeTrack(openLength, totalLength) {
 
 	var slotDots = makeSlotDots(container, openLength, totalLength)
 
-	return {layer: container, slotDots: slotDots, trackEntries: new Map(), beatSlots: beatSlots, restSlots: restSlots}
+	return {layer: container, slotDots: slotDots, trackEntries: new Map(), beatSlots: beatSlots, restSlots: restSlots, selected: true}
 }
 
 function makeSlot(isOpen) {
@@ -215,14 +223,8 @@ function makeSlotDots(parentLayer, openLength, totalLength) {
 	return slotDots
 }
 
-afterDuration(0.5, function() {
+afterDuration(1.0, function() {
 	revealTrack2()
-	afterDuration(1.0, function() {
-		selectTrack2()
-		afterDuration(1.0, function() {
-			selectTrack1()
-		})
-	})
 })
 
 function revealTrack2() {
@@ -235,12 +237,13 @@ function revealTrack2() {
 
 	track.layer.animators.frame.target = new Rect({x: track.layer.originX, y: track.layer.originY, width: track.layer.width, height: track.layer.height - trackHeight})
 	track2.layer.animators.frame.target = new Rect({x: track2.layer.originX, y: track2.layer.originY - trackHeight, width: track2.layer.width, height: track2.layer.height - trackHeight})
-}
 
+	track2Revealed = true
+}
 
 function selectTrack1() {
 	track.layer.animators.frame.target = new Rect({x: track.layer.originX, y: track.layer.originY, width: track.layer.width, height: Layer.root.height - trackHeight - containerMargin * 2})
-	track2.layer.animators.frame.target = new Rect({x: track2.layer.originX, y: track.layer.animators.frame.target.maxY + containerMargin, width: track2.layer.width, height: trackHeight})
+	track2.layer.animators.frame.target = new Rect({x: track2.layer.originX, y: track.layer.animators.frame.target.maxY + containerMargin, width: track2.layer.width, height: trackHeight - containerMargin})
 
 	// Hmmm... the backgroundColor dynamic animator is being bouncy even when I tell it not to be.
 	Layer.animate({duration: 0.3, curve: AnimationCurve.EaseOut, animations: function() {
@@ -250,8 +253,8 @@ function selectTrack1() {
 }
 
 function selectTrack2() {
-	track.layer.animators.frame.target = new Rect({x: track.layer.originX, y: track.layer.originY, width: track.layer.width, height: trackHeight})
-	track2.layer.animators.frame.target = new Rect({x: track2.layer.originX, y: trackHeight + containerMargin, width: track2.layer.width, height: track2.layer.height})
+	track.layer.animators.frame.target = new Rect({x: track.layer.originX, y: track.layer.originY, width: track.layer.width, height: trackHeight - containerMargin})
+	track2.layer.animators.frame.target = new Rect({x: track2.layer.originX, y: trackHeight + containerMargin, width: track2.layer.width, height: Layer.root.height - trackHeight - containerMargin * 2})
 
 	// Hmmm... the backgroundColor dynamic animator is being bouncy even when I tell it not to be.
 	Layer.animate({duration: 0.3, curve: AnimationCurve.EaseOut, animations: function() {
@@ -261,6 +264,8 @@ function selectTrack2() {
 }
 
 function setTrackSelected(track, selected) {
+	track.selected = selected
+	track.layer.userInteractionEnabled = selected
 	track.layer.backgroundColor = selected ? Color.white : Color.clear
 	track.beatSlots.forEach(function(slot) { slot.border = beatBorder(selected) })
 	track.restSlots.forEach(function(slot) { slot.backgroundColor = selected ? restColorSelected : restColorUnselected })
@@ -268,6 +273,49 @@ function setTrackSelected(track, selected) {
 
 function beatBorder(selected) {
 	return new Border({width: 4, color: selected ? beatBorderColorSelected : beatBorderColorUnselected})
+}
+
+var touchedTrack = null
+Layer.root.touchBeganHandler = function(touchSequence) {
+	[track, track2].forEach(function(t) {
+		if (t.layer.containsGlobalPoint(touchSequence.currentSample.globalLocation) && !t.selected) {
+			setTrackHighlighted(t, true)
+			touchedTrack = t
+		}
+	})
+}
+
+Layer.root.touchMovedHandler = function(touchSequence) {
+	if (touchedTrack !== null) {
+		setTrackHighlighted(touchedTrack, touchedTrack.layer.containsGlobalPoint(touchSequence.currentSample.globalLocation))
+	}
+}
+
+Layer.root.touchEndedHandler = function(touchSequence) {
+	if (touchedTrack !== null) {
+		setTrackHighlighted(touchedTrack, false)
+		if (touchedTrack.layer.containsGlobalPoint(touchSequence.currentSample.globalLocation)) {
+			if (touchedTrack === track) {
+				selectTrack1()
+			} else {
+				selectTrack2()
+			}
+		}
+		touchedTrack = null
+	}
+}
+
+Layer.root.touchCancelledHandler = function(touchSequence) {
+	if (touchedTrack !== null) {
+		setTrackHighlighted(touchedTrack, false)
+		touchedTrack = null
+	}
+}
+
+function setTrackHighlighted(track, highlighted) {
+	Layer.animate({duration: 0.15, curve: AnimationCurve.EaseOut, animations: function() {
+		track.layer.backgroundColor = highlighted ? new Color({white: 1.0, alpha: 0.5}) : Color.clear
+	}})
 }
 
 //============================================================================================
