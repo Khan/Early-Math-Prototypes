@@ -14,8 +14,6 @@ var openTrackLength = 5
 var totalTrackLength = 8
 
 
-Layer.root.backgroundColor = new Color({white: 0.886})
-
 var track = makeTrack(openTrackLength, totalTrackLength)
 
 var threeSnippet = makeSnippet("3 Brick - orange - C E G", 3, ["cat_e", "cat_gsharp", "cat_b"], track)
@@ -23,17 +21,17 @@ threeSnippet.layer.position = Layer.root.position
 
 var twoSnippet = makeSnippet("2 Brick - blue - E C", 2, ["dog_gsharp", "dog_e"], track)
 twoSnippet.layer.position = Layer.root.position
-twoSnippet.layer.y += 150
+twoSnippet.layer.y -= 150
 
-var oneSnippet = makeSnippet("1 Brick - orange - C8", 1, ["cat_e8"], track)
+var track2 = makeTrack(openTrackLength, totalTrackLength)
+track2.layer.originY = Layer.root.frameMaxY
+
+var oneSnippet = makeSnippet("1 Brick - orange - C8", 1, ["cat_e8"], track2)
 oneSnippet.layer.position = twoSnippet.layer.position
-oneSnippet.layer.y += 150
 
-var twoSnippetAlt = makeSnippet("2 Brick - orange - F E", 2, ["cat_a", "cat_gsharp"], track)
+var twoSnippetAlt = makeSnippet("2 Brick - orange - F E", 2, ["cat_a", "cat_gsharp"], track2)
 twoSnippetAlt.layer.position = twoSnippet.layer.position
 twoSnippetAlt.layer.x += 300
-
-makeSlotDots()
 
 //============================================================================================
 // Audio
@@ -147,8 +145,11 @@ function makeTrack(openLength, totalLength) {
 	var containerMargin = 10
 	var container = new Layer()
 	container.frame = Layer.root.bounds.inset({value: containerMargin})
-	container.backgroundColor = Color.white
+	container.backgroundColor = Color.clear
 	container.cornerRadius = 22.5
+
+	container.animators.backgroundColor.springSpeed = 40
+	container.animators.backgroundColor.springBounciness = 0
 
 	// Make all the slots.
 	for (var slotIndex = 0; slotIndex < totalLength; slotIndex++) {
@@ -203,6 +204,27 @@ function makeSlotDots(parentLayer, openLength, totalLength) {
 		slotDots.push(dot)
 	}
 	return slotDots
+}
+
+afterDuration(0.5, function() {
+	revealTrack2()
+})
+
+function revealTrack2() {
+	Layer.animate({duration: 0.2, curve: AnimationCurve.EaseOut, animations: function() {
+		Layer.root.backgroundColor = new Color({white: 0.886})
+	}})
+	track.layer.backgroundColor = Color.white
+
+	var offset = 150
+
+	track.layer.animators.frame.springSpeed = 30
+	track.layer.animators.frame.springBounciness = 5
+	track.layer.animators.frame.target = new Rect({x: track.layer.originX, y: track.layer.originY, width: track.layer.width, height: track.layer.height - offset})
+
+	track2.layer.animators.y.springSpeed = 30
+	track2.layer.animators.y.springBounciness = 5
+	track2.layer.animators.y.target = track2.layer.y - offset
 }
 
 //============================================================================================
