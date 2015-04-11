@@ -9,10 +9,15 @@ var firstTrackSlotX = 23
 var trackCenterY = 69
 var trackSlotWidth = 118
 var dotBaseline = trackCenterY - 85
+var containerMargin = 10
+var trackHeight = 150
+var beatBorderColorSelected = new Color({white: 0.92})
+var beatBorderColorUnselected = new Color({white: 0.80})
+var restColorSelected = new Color({white: 0.984})
+var restColorUnselected = new Color({white: 0.863})
 
 var openTrackLength = 5
 var totalTrackLength = 8
-
 
 var track = makeTrack(openTrackLength, totalTrackLength)
 
@@ -142,34 +147,38 @@ function positionConstrainedWithinRect(layer, rect) {
 // Tracks
 
 function makeTrack(openLength, totalLength) {
-	var containerMargin = 10
 	var container = new Layer()
 	container.frame = Layer.root.bounds.inset({value: containerMargin})
 	container.backgroundColor = Color.clear
 	container.cornerRadius = 22.5
 
-	container.animators.backgroundColor.springSpeed = 40
-	container.animators.backgroundColor.springBounciness = 0
+	container.animators.frame.springSpeed = 30
+	container.animators.frame.springBounciness = 5
 
 	// Make all the slots.
+	var beatSlots = [], restSlots = []
 	for (var slotIndex = 0; slotIndex < totalLength; slotIndex++) {
-		var slot = makeSlot(slotIndex < openLength)
+		var isBeat = slotIndex < openLength
+		var slot = makeSlot(isBeat)
 		slot.parent = container
 		slot.x = firstTrackSlotX + (slotIndex + 0.5) * trackSlotWidth
 		slot.y = trackCenterY
+
+		var targetSlotList = isBeat ? beatSlots : restSlots
+		targetSlotList.push(slot)
 	}
 
 	var slotDots = makeSlotDots(container, openLength, totalLength)
 
-	return {layer: container, slotDots: slotDots, trackEntries: new Map()}
+	return {layer: container, slotDots: slotDots, trackEntries: new Map(), beatSlots: beatSlots, restSlots: restSlots}
 }
 
 function makeSlot(isOpen) {
 	var slot = new Layer()
 	if (isOpen) {
-		slot.border = new Border({width: 4, color: new Color({white: 0.92})})
+		slot.border = beatBorder(true)
 	} else {
-		slot.backgroundColor = new Color({white: 0.984})
+		slot.backgroundColor = restColorSelected
 	}
 	slot.width = slot.height = 87
 	slot.cornerRadius = 22.5
@@ -208,23 +217,57 @@ function makeSlotDots(parentLayer, openLength, totalLength) {
 
 afterDuration(0.5, function() {
 	revealTrack2()
+	afterDuration(1.0, function() {
+		selectTrack2()
+		afterDuration(1.0, function() {
+			selectTrack1()
+		})
+	})
 })
 
 function revealTrack2() {
 	Layer.animate({duration: 0.2, curve: AnimationCurve.EaseOut, animations: function() {
 		Layer.root.backgroundColor = new Color({white: 0.886})
 	}})
+
 	track.layer.backgroundColor = Color.white
+	setTrackSelected(track2, false)
 
-	var offset = 150
+	track.layer.animators.frame.target = new Rect({x: track.layer.originX, y: track.layer.originY, width: track.layer.width, height: track.layer.height - trackHeight})
+	track2.layer.animators.frame.target = new Rect({x: track2.layer.originX, y: track2.layer.originY - trackHeight, width: track2.layer.width, height: track2.layer.height - trackHeight})
+}
 
-	track.layer.animators.frame.springSpeed = 30
-	track.layer.animators.frame.springBounciness = 5
-	track.layer.animators.frame.target = new Rect({x: track.layer.originX, y: track.layer.originY, width: track.layer.width, height: track.layer.height - offset})
 
-	track2.layer.animators.y.springSpeed = 30
-	track2.layer.animators.y.springBounciness = 5
-	track2.layer.animators.y.target = track2.layer.y - offset
+function selectTrack1() {
+	track.layer.animators.frame.target = new Rect({x: track.layer.originX, y: track.layer.originY, width: track.layer.width, height: Layer.root.height - trackHeight - containerMargin * 2})
+	track2.layer.animators.frame.target = new Rect({x: track2.layer.originX, y: track.layer.animators.frame.target.maxY + containerMargin, width: track2.layer.width, height: trackHeight})
+
+	// Hmmm... the backgroundColor dynamic animator is being bouncy even when I tell it not to be.
+	Layer.animate({duration: 0.3, curve: AnimationCurve.EaseOut, animations: function() {
+		setTrackSelected(track, true)
+		setTrackSelected(track2, false)
+	}})
+}
+
+function selectTrack2() {
+	track.layer.animators.frame.target = new Rect({x: track.layer.originX, y: track.layer.originY, width: track.layer.width, height: trackHeight})
+	track2.layer.animators.frame.target = new Rect({x: track2.layer.originX, y: trackHeight + containerMargin, width: track2.layer.width, height: track2.layer.height})
+
+	// Hmmm... the backgroundColor dynamic animator is being bouncy even when I tell it not to be.
+	Layer.animate({duration: 0.3, curve: AnimationCurve.EaseOut, animations: function() {
+		setTrackSelected(track, false)
+		setTrackSelected(track2, true)
+	}})
+}
+
+function setTrackSelected(track, selected) {
+	track.layer.backgroundColor = selected ? Color.white : Color.clear
+	track.beatSlots.forEach(function(slot) { slot.border = beatBorder(selected) })
+	track.restSlots.forEach(function(slot) { slot.backgroundColor = selected ? restColorSelected : restColorUnselected })
+}
+
+function beatBorder(selected) {
+	return new Border({width: 4, color: selected ? beatBorderColorSelected : beatBorderColorUnselected})
 }
 
 //============================================================================================
