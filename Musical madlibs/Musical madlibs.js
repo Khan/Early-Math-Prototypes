@@ -20,12 +20,12 @@ var openTrackLength = 5
 var totalTrackLength = 8
 var track2Revealed = false
 
-var track = makeTrack(openTrackLength, totalTrackLength)
+var track1 = makeTrack(openTrackLength, totalTrackLength)
 
-var threeSnippet = makeSnippet("3 Brick - orange - C E G", 3, ["cat_e", "cat_gsharp", "cat_b"], track)
+var threeSnippet = makeSnippet("3 Brick - orange - C E G", 3, ["cat_e", "cat_gsharp", "cat_b"], track1)
 threeSnippet.layer.position = Layer.root.position
 
-var twoSnippet = makeSnippet("2 Brick - blue - E C", 2, ["dog_gsharp", "dog_e"], track)
+var twoSnippet = makeSnippet("2 Brick - blue - E C", 2, ["dog_gsharp", "dog_e"], track1)
 twoSnippet.layer.position = Layer.root.position
 twoSnippet.layer.y -= 150
 
@@ -55,7 +55,7 @@ Layer.root.behaviors = [
 		var beatLength = 0.3
 		var dotAnimationLength = 0.18
 		var currentTimestamp = Timestamp.currentTimestamp()
-		var currentTrack = (beatIndex >= totalTrackLength) ? track2 : track
+		var currentTrack = (beatIndex >= totalTrackLength) ? track2 : track1
 
 		var beatIndexWithinTrack = beatIndex % totalTrackLength
 
@@ -69,7 +69,7 @@ Layer.root.behaviors = [
 			if (lastBeatIndex < 0) {
 				lastBeatIndex = totalNumberOfBeats - 1
 			}
-			var lastDotTrack = (lastBeatIndex >= totalTrackLength) ? track2 : track
+			var lastDotTrack = (lastBeatIndex >= totalTrackLength) ? track2 : track1
 			var lastDot = lastDotTrack.slotDots[lastBeatIndex % totalTrackLength]
 			lastDot.animators.scale.target = new Point({x: 0, y: 0})
 			lastDot.animators.y.target = dotBaseline
@@ -140,6 +140,17 @@ function makeSnippet(name, size, samples, track) {
 			layer.animators.position.target = positionConstrainedWithinRect(layer, layer.parent.bounds.inset({value: 20}))
 		}
 		layer.animators.scale.target = new Point({x: 1.0, y: 1.0})
+
+		// Check to see if all the spots are full
+		if (!track2Revealed && track === track1) {
+			var beatsFilled = 0
+			track.trackEntries.forEach(function(value, key) {
+				beatsFilled += key.blockCount
+			})
+			if (beatsFilled == openTrackLength) {
+				revealTrack2()
+			}
+		}
 	}
 
 	return snippet
@@ -223,42 +234,40 @@ function makeSlotDots(parentLayer, openLength, totalLength) {
 	return slotDots
 }
 
-afterDuration(1.0, function() {
-	revealTrack2()
-})
-
 function revealTrack2() {
+	new Sound({name: "track_full"}).play()
+
 	Layer.animate({duration: 0.2, curve: AnimationCurve.EaseOut, animations: function() {
 		Layer.root.backgroundColor = new Color({white: 0.886})
 	}})
 
-	track.layer.backgroundColor = Color.white
+	track1.layer.backgroundColor = Color.white
 	setTrackSelected(track2, false)
 
-	track.layer.animators.frame.target = new Rect({x: track.layer.originX, y: track.layer.originY, width: track.layer.width, height: track.layer.height - trackHeight})
+	track1.layer.animators.frame.target = new Rect({x: track1.layer.originX, y: track1.layer.originY, width: track1.layer.width, height: track1.layer.height - trackHeight})
 	track2.layer.animators.frame.target = new Rect({x: track2.layer.originX, y: track2.layer.originY - trackHeight, width: track2.layer.width, height: track2.layer.height - trackHeight})
 
 	track2Revealed = true
 }
 
 function selectTrack1() {
-	track.layer.animators.frame.target = new Rect({x: track.layer.originX, y: track.layer.originY, width: track.layer.width, height: Layer.root.height - trackHeight - containerMargin * 2})
-	track2.layer.animators.frame.target = new Rect({x: track2.layer.originX, y: track.layer.animators.frame.target.maxY + containerMargin, width: track2.layer.width, height: trackHeight - containerMargin})
+	track1.layer.animators.frame.target = new Rect({x: track1.layer.originX, y: track1.layer.originY, width: track1.layer.width, height: Layer.root.height - trackHeight - containerMargin * 2})
+	track2.layer.animators.frame.target = new Rect({x: track2.layer.originX, y: track1.layer.animators.frame.target.maxY + containerMargin, width: track2.layer.width, height: trackHeight - containerMargin})
 
 	// Hmmm... the backgroundColor dynamic animator is being bouncy even when I tell it not to be.
 	Layer.animate({duration: 0.3, curve: AnimationCurve.EaseOut, animations: function() {
-		setTrackSelected(track, true)
+		setTrackSelected(track1, true)
 		setTrackSelected(track2, false)
 	}})
 }
 
 function selectTrack2() {
-	track.layer.animators.frame.target = new Rect({x: track.layer.originX, y: track.layer.originY, width: track.layer.width, height: trackHeight - containerMargin})
+	track1.layer.animators.frame.target = new Rect({x: track1.layer.originX, y: track1.layer.originY, width: track1.layer.width, height: trackHeight - containerMargin})
 	track2.layer.animators.frame.target = new Rect({x: track2.layer.originX, y: trackHeight + containerMargin, width: track2.layer.width, height: Layer.root.height - trackHeight - containerMargin * 2})
 
 	// Hmmm... the backgroundColor dynamic animator is being bouncy even when I tell it not to be.
 	Layer.animate({duration: 0.3, curve: AnimationCurve.EaseOut, animations: function() {
-		setTrackSelected(track, false)
+		setTrackSelected(track1, false)
 		setTrackSelected(track2, true)
 	}})
 }
@@ -277,7 +286,7 @@ function beatBorder(selected) {
 
 var touchedTrack = null
 Layer.root.touchBeganHandler = function(touchSequence) {
-	[track, track2].forEach(function(t) {
+	[track1, track2].forEach(function(t) {
 		if (t.layer.containsGlobalPoint(touchSequence.currentSample.globalLocation) && !t.selected) {
 			setTrackHighlighted(t, true)
 			touchedTrack = t
@@ -295,7 +304,7 @@ Layer.root.touchEndedHandler = function(touchSequence) {
 	if (touchedTrack !== null) {
 		setTrackHighlighted(touchedTrack, false)
 		if (touchedTrack.layer.containsGlobalPoint(touchSequence.currentSample.globalLocation)) {
-			if (touchedTrack === track) {
+			if (touchedTrack === track1) {
 				selectTrack1()
 			} else {
 				selectTrack2()
