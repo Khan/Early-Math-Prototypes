@@ -112,17 +112,48 @@ function makeSnippet(name, size, samples, track) {
 	layer.animators.position.springSpeed = 40
 	layer.animators.position.springBounciness = 3
 
+	// Make the ruler
+	var rulerColor = new Color({white: 0.9})
+	var rulerContainer = new Layer({parent: track.layer})
+	rulerContainer.width = layer.width
+	rulerContainer.originY = layer.frameMaxY + 10
+	rulerContainer.animators.alpha.springBounciness = 0
+	rulerContainer.animators.alpha.springSpeed = 30
+	rulerContainer.animators.frame.springSpeed = layer.animators.position.springSpeed
+	rulerContainer.animators.frame.springBounciness = layer.animators.position.springBounciness
+	rulerContainer.alpha = 0
+	var leftCap = new ShapeLayer.Line({from: Point.zero, to: new Point({x: 0, y: 10}), parent: rulerContainer})
+	leftCap.strokeColor = rulerColor
+	var rightCap = new ShapeLayer.Line({from: new Point({x: layer.width, y: 0}), to: new Point({x: layer.width, y: 10}), parent: rulerContainer})
+	rightCap.strokeColor = rulerColor
+	var middleLine = new ShapeLayer.Line({from: new Point({x: 0, y: 5}), to: new Point({x: layer.width, y: 5}), parent: rulerContainer})
+	middleLine.strokeColor = rulerColor
+	var label = new TextLayer({parent: rulerContainer})
+	label.fontName = "AvenirNext-Regular"
+	label.fontSize = 48
+	label.text = size.toString()
+	label.textColor = rulerColor
+	label.x = layer.width / 2
+	label.originY = 15
+
 	layer.touchBeganHandler = function(sequence) {
 		track.trackEntries.delete(snippet)
 		highestSnippetZ++
 		layer.zPosition = highestSnippetZ
 		layer.animators.scale.target = new Point({x: 1.05, y: 1.05})
 		layer.initialPosition = layer.position
+
+		rulerContainer.animators.alpha.target = 1
+		rulerContainer.x = layer.frame.midX
+		rulerContainer.originY = layer.frameMaxY + 10
 	}
 	layer.touchMovedHandler = function(sequence) {
 		var newPosition = layer.initialPosition.add(sequence.currentSample.globalLocation.subtract(sequence.firstSample.globalLocation))
 		var constrainedPosition = positionConstrainedWithinRect(layer, layer.parent.bounds)
 		layer.position = constrainedPosition.add(newPosition.subtract(constrainedPosition).divide(2))
+
+		rulerContainer.x = layer.frame.midX
+		rulerContainer.originY = layer.frameMaxY + 10
 	}
 	layer.touchEndedHandler = function(sequence) {
 		var snippetOrigin = new Point({x: layer.position.x - layer.width / 2.0, y: layer.position.y - layer.height / 2.0})
@@ -151,6 +182,14 @@ function makeSnippet(name, size, samples, track) {
 				revealTrack2()
 			}
 		}
+
+		rulerContainer.animators.frame.target = new Rect({x: layer.animators.position.target.x - layer.width / 2.0, y: layer.animators.position.target.y + layer.height / 2.0 + 10, width: rulerContainer.width, height: rulerContainer.height})
+		rulerContainer.animators.alpha.target = 0
+	}
+	layer.touchCancelledHandler = function(sequence) {
+		layer.animators.position.target = positionConstrainedWithinRect(layer, layer.parent.bounds.inset({value: 20}))
+		rulerContainer.animators.frame.target = new Rect({x: layer.animators.position.target.x - layer.width / 2.0, y: layer.animators.position.target.y + layer.height / 2.0 + 10, width: rulerContainer.width, height: rulerContainer.height})
+		rulerContainer.animators.alpha.target = 0
 	}
 
 	return snippet
