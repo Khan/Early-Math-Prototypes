@@ -22,22 +22,34 @@ var track2Revealed = false
 
 var track1 = makeTrack(openTrackLength, totalTrackLength)
 
-var threeSnippet = makeSnippet("3 Brick - orange - C E G", 3, ["cat_e", "cat_gsharp", "cat_b"], track1)
-threeSnippet.layer.position = Layer.root.position
+var track1Snippet1 = makeSnippet("3 Brick - orange - C E G", 3, ["cat_e", "cat_gsharp", "cat_b"], track1)
+track1Snippet1.layer.position = Layer.root.position
 
-var twoSnippet = makeSnippet("2 Brick - blue - E C", 2, ["dog_gsharp", "dog_e"], track1)
-twoSnippet.layer.position = Layer.root.position
-twoSnippet.layer.y -= 150
+var track1Snippet2 = makeSnippet("2 Brick - blue - E C", 2, ["dog_gsharp", "dog_e"], track1)
+track1Snippet2.layer.position = Layer.root.position
+track1Snippet2.layer.y -= 150
 
 var track2 = makeTrack(openTrackLength, totalTrackLength)
 track2.layer.originY = Layer.root.frameMaxY
 
-var oneSnippet = makeSnippet("1 Brick - orange - C8", 1, ["cat_e8"], track2)
-oneSnippet.layer.position = twoSnippet.layer.position
+var track2Snippet1 = makeSnippet("1 Brick - orange - C8", 1, ["cat_e8"], track2)
+track2Snippet1.layer.position = track1Snippet2.layer.position
 
-var twoSnippetAlt = makeSnippet("2 Brick - orange - F E", 2, ["cat_a", "cat_gsharp"], track2)
-twoSnippetAlt.layer.position = twoSnippet.layer.position
-twoSnippetAlt.layer.x += 300
+var track2Snippet2 = makeSnippet("2 Brick - orange - F E", 2, ["cat_a", "cat_gsharp"], track2)
+track2Snippet2.layer.position = track1Snippet2.layer.position
+track2Snippet2.layer.x += 300
+
+var track2Snippet3 = makeSnippet("2 Brick - blue - C C", 2, ["dog_e", "dog_e"], track2)
+track2Snippet3.layer.position = track1Snippet1.layer.position
+
+var track2Snippet4 = makeSnippet("2 Brick - blue - F E", 2, ["dog_a", "dog_gsharp"], track2)
+track2Snippet4.layer.position = track1Snippet1.layer.position
+track2Snippet4.layer.x += 300
+
+var track2Snippet5 = makeSnippet("1 Brick - blue - G", 1, ["dog_b"], track2)
+track2Snippet5.layer.position = track2Snippet1.layer.position
+track2Snippet5.layer.x -= 250
+track2Snippet5.layer.y += 75
 
 //============================================================================================
 // Audio
