@@ -6,6 +6,7 @@ var beatLineYPosition = 300
 var beatVelocity = 300 // points per second
 var timeBetweenEmission = 1.0 // in seconds
 var beatDiameter = 50
+var pitches = ["cat_e", "cat_fsharp", "cat_gsharp", "cat_a", "cat_b"]
 
 var topHalf = new Layer()
 topHalf.frame = new Rect({x: 0, y: 0, width: Layer.root.width, height: beatLineYPosition})
@@ -26,7 +27,8 @@ Layer.root.behaviors = [
 			beat.fillColor = Color.orange
 			beat.strokeColor = undefined
 			beat.originY = -beatDiameter
-			beat.x = Math.random() * (Layer.root.width * 0.75) + Layer.root.width * 0.125
+			beat.pitch = Math.floor(Math.random() * pitches.length)
+			beat.x = beat.pitch * (Layer.root.width * 0.75 / (pitches.length - 1)) + Layer.root.width * 0.125
 			beat.behaviors = [new ActionBehavior({handler: function() { beatBehavior(beat) }})]
 
 			lastBeatEmissionTime = t
@@ -44,8 +46,7 @@ function beatBehavior(beat) {
 
 	if (beat.y > beatLineYPosition - beatDiameter / 2.0 && beat.burst === undefined) {
 		if (bottomHalf.numberOfActiveTouches > 0) {
-			var sounds = ["cat_e", "cat_fsharp", "cat_gsharp"]
-			new Sound({name: sounds[Math.floor(Math.random()*sounds.length)]}).play()
+			new Sound({name: pitches[beat.pitch]}).play()
 		} else {
 			addBurstEmitter(beat)
 		}
