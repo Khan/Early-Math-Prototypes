@@ -39,6 +39,23 @@ Layer.root.behaviors = [
 
 bottomHalf.touchBeganHandler = function(touchSequence) {
 	lastTouchSequence = touchSequence
+	// TODO(andy): You should be able to resize the frame of a shape layer and make the shape resize. Maybe? I dunno...
+	var touchBurst = new Layer({parent: bottomHalf})
+	touchBurst.width = touchBurst.height = 20
+	touchBurst.position = bottomHalf.convertGlobalPointToLocalPoint(touchSequence.firstSample.globalLocation)
+	touchBurst.border = new Border({width: 2, color: Color.orange})
+	touchBurst.cornerRadius = touchBurst.width / 2.0
+	touchBurst.behaviors = [
+		new ActionBehavior({handler: function() {
+			if (touchBurst.originX > 0 || touchBurst.frameMaxX < bottomHalf.width) {
+				var newDiameter = touchBurst.width + 30
+				touchBurst.width = touchBurst.height = newDiameter
+				touchBurst.cornerRadius = newDiameter / 2.0
+			} else {
+				touchBurst.parent = undefined
+			}
+		}})
+	]
 }
 
 function beatBehavior(beat) {
