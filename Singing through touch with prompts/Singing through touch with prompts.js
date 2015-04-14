@@ -19,6 +19,7 @@ bottomHalf.frame = new Rect({x: 0, y: beatLineYPosition, width: Layer.root.width
 bottomHalf.backgroundColor = Color.white
 
 var lastBeatEmissionTime = Timestamp.currentTimestamp() - timeBetweenEmission
+var lastTouchSequence = null
 Layer.root.behaviors = [
 	new ActionBehavior({handler: function() {
 		var t = Timestamp.currentTimestamp()
@@ -36,6 +37,10 @@ Layer.root.behaviors = [
 	}})
 ]
 
+bottomHalf.touchBeganHandler = function(touchSequence) {
+	lastTouchSequence = touchSequence
+}
+
 function beatBehavior(beat) {
 	var t = Timestamp.currentTimestamp()
 	if (beat.lastMovementTimestamp !== undefined) {
@@ -44,8 +49,9 @@ function beatBehavior(beat) {
 	beat.lastMovementTimestamp = t
 
 
-	if (beat.y > beatLineYPosition - beatDiameter / 2.0 && beat.burst === undefined) {
-		if (bottomHalf.numberOfActiveTouches > 0) {
+	if (beat.y > beatLineYPosition + beatDiameter / 3.0 && beat.burst === undefined) {
+		if (lastTouchSequence !== null && t - lastTouchSequence.firstSample.timestamp < 0.3) {
+			console.log(t - lastTouchSequence.firstSample.timestamp)
 			new Sound({name: pitches[beat.pitch]}).play()
 		} else {
 			addBurstEmitter(beat)
@@ -83,7 +89,7 @@ function addBurstEmitter(layer) {
 
 	afterDuration(0.2, function() {
 		particleEmitter.birthRate = 0
-		afterDuration(particle.lifetime, function() {
+		afterDuration(particle.lifetime + particle.lifetimeRange, function() {
 			bottomHalf.removeParticleEmitter(particleEmitter)
 			layer.emitter = undefined
 		})
