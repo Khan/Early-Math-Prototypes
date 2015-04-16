@@ -65,7 +65,7 @@ bottomHalf.touchBeganHandler = function(touchSequence) {
 		touchBurst.frame = bottomHalf.bounds
 		touchBurst.fillColor = undefined
 		touchBurst.strokeWidth = 1
-		touchBurst.strokeColor = Color.black
+		touchBurst.strokeColor = new Color({white: 0.6})
 		touchBurst.lineCapStyle = LineCapStyle.Round
 		touchBursts.push(touchBurst)
 
@@ -73,7 +73,7 @@ bottomHalf.touchBeganHandler = function(touchSequence) {
 
 		touchBurst.behaviors = [
 			new ActionBehavior({handler: function() {
-				var unitTime = (Timestamp.currentTimestamp() - startTime) / leewayBetweenTouchAndBeat
+				var unitTime = clip({value: (Timestamp.currentTimestamp() - startTime) / (leewayBetweenTouchAndBeat * 0.9), min: 0, max: 1})
 				var lineVector = to.subtract(from).multiply(1)
 				var angle = Math.atan2(lineVector.y, lineVector.x)
 				var normalAngle = angle + Math.PI / 2.0
