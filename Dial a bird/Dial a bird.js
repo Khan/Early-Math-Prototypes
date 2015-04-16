@@ -7,15 +7,15 @@ Layer.root.image = new Image({name: "bg"})
 //-------------------------
 
 var scrollerHeight = 165
-var tensScrollLayer = makeGrippyScrollLayer(10)
-var onesScrollLayer = makeGrippyScrollLayer(1)
+var tens = makeDialsForUnits(10)
+var ones = makeDialsForUnits(1)
 
-onesScrollLayer.moveToCenterOfParentLayer()
-tensScrollLayer.moveToCenterOfParentLayer()
-tensScrollLayer.moveToLeftOfSiblingLayer({siblingLayer: onesScrollLayer})
+ones.container.moveToCenterOfParentLayer()
+tens.container.moveToCenterOfParentLayer()
+tens.container.moveToLeftOfSiblingLayer({siblingLayer: ones.container})
 
 
-function makeGrippyScrollLayer(unit /* 1, 10, 100, etc. */) {
+function makeDialsForUnits(unit /* 1, 10, 100, etc. */) {
 	
 	var container = new Layer()
 	var grippyLayer = new Layer({imageName: "grippy", parent: container})
@@ -50,7 +50,10 @@ function makeGrippyScrollLayer(unit /* 1, 10, 100, etc. */) {
 	
 	makeScrollLayerDraggable(container, grippyLayer)
 	
-	return container
+	return {
+		container: container,
+		scrollLayers: scrollLayers
+	}
 }
 
 var label = new TextLayer()
@@ -85,10 +88,10 @@ function addBird() {
 	newBird.origin = new Point({x: birds.length * newBird.width + 300, y: 275})
 }
 
-
-onesScrollLayer.behaviors = [new ActionBehavior({handler: function() {
-	var currentDigit = Math.round(onesScrollLayer.bounds.origin.y / onesScrollLayer.height) + 1
-	var clippedDigit = clip({value: currentDigit, min: 1, max: 9})
+var oneScroller = ones.scrollLayers[0]
+oneScroller.behaviors = [new ActionBehavior({handler: function() {
+	var currentDigit = Math.round(oneScroller.bounds.origin.y / oneScroller.height)
+	var clippedDigit = clip({value: currentDigit, min: 0, max: 9})
 	
 	if (birds.length < clippedDigit) {
 		addBird()
