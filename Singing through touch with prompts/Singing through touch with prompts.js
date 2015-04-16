@@ -6,6 +6,7 @@ var beatLineYPosition = 300
 var beatVelocity = 300 // points per second
 var timeBetweenEmission = 1.0 // in seconds
 var beatDiameter = 50
+var leewayBetweenTouchAndBeat = 0.3 // in seconds
 var pitches = ["cat_e", "cat_fsharp", "cat_gsharp", "cat_a", "cat_b"]
 
 var topHalf = new Layer()
@@ -20,6 +21,9 @@ bottomHalf.backgroundColor = Color.white
 
 var lastBeatEmissionTime = Timestamp.currentTimestamp() - timeBetweenEmission
 var lastTouchSequence = null
+
+var activeBeats = []
+
 Layer.root.behaviors = [
 	new ActionBehavior({handler: function() {
 		var t = Timestamp.currentTimestamp()
@@ -32,30 +36,76 @@ Layer.root.behaviors = [
 			beat.x = beat.pitch * (Layer.root.width * 0.75 / (pitches.length - 1)) + Layer.root.width * 0.125
 			beat.behaviors = [new ActionBehavior({handler: function() { beatBehavior(beat) }})]
 
+			beat.animators.alpha.springBounciness = 0
+			beat.animators.alpha.springSpeed = 5
+			beat.animators.scale.springBounciness = 0
+			beat.animators.scale.springSpeed = 5
+
+			activeBeats.push(beat)
+
 			lastBeatEmissionTime = t
 		}
 	}})
 ]
 
+var touchBursts = []
+
 bottomHalf.touchBeganHandler = function(touchSequence) {
-	lastTouchSequence = touchSequence
-	// TODO(andy): You should be able to resize the frame of a shape layer and make the shape resize. Maybe? I dunno...
-	var touchBurst = new Layer({parent: bottomHalf})
-	touchBurst.width = touchBurst.height = 20
-	touchBurst.position = bottomHalf.convertGlobalPointToLocalPoint(touchSequence.firstSample.globalLocation)
-	touchBurst.border = new Border({width: 2, color: Color.orange})
-	touchBurst.cornerRadius = touchBurst.width / 2.0
-	touchBurst.behaviors = [
-		new ActionBehavior({handler: function() {
-			if (touchBurst.originX > 0 || touchBurst.frameMaxX < bottomHalf.width) {
-				var newDiameter = touchBurst.width + 30
-				touchBurst.width = touchBurst.height = newDiameter
-				touchBurst.cornerRadius = newDiameter / 2.0
-			} else {
-				touchBurst.parent = undefined
-			}
-		}})
-	]
+	var nearestBeat = nearestUnpairedBeatToPoint(touchSequence.firstSample.globalLocation)
+	if (nearestBeat !== undefined) {
+		nearestBeat.pairedTime = Timestamp.currentTimestamp()
+
+		lastTouchSequence = touchSequence
+		// TODO(andy): You should be able to resize the frame of a shape layer and make the shape resize. Maybe? I dunno...
+
+		var from = bottomHalf.convertGlobalPointToLocalPoint(touchSequence.firstSample.globalLocation)
+		var to = new Point({x: nearestBeat.x, y: 0})
+
+		var touchBurst = new ShapeLayer({parent: bottomHalf})
+		touchBurst.frame = bottomHalf.bounds
+		touchBurst.fillColor = undefined
+		touchBurst.strokeWidth = 1
+		touchBurst.strokeColor = Color.black
+		touchBurst.lineCapStyle = LineCapStyle.Round
+		touchBursts.push(touchBurst)
+
+		var startTime = touchSequence.firstSample.timestamp
+
+		touchBurst.behaviors = [
+			new ActionBehavior({handler: function() {
+				var unitTime = (Timestamp.currentTimestamp() - startTime) / leewayBetweenTouchAndBeat
+				var lineVector = to.subtract(from).multiply(1)
+				var angle = Math.atan2(lineVector.y, lineVector.x)
+				var normalAngle = angle + Math.PI / 2.0
+				var waveUnitVector = new Point({x: Math.cos(normalAngle), y: Math.sin(normalAngle)})
+
+				var segments = []
+				touchBurst.strokeWidth = Math.sin(unitTime * Math.PI) * 7
+
+				var numberOfSamples = 100
+				var frequency = 5
+				var amplitude = 20
+				var transverseVelocity = -40
+				for (var sampleIndex = 0; sampleIndex < numberOfSamples; sampleIndex++) {
+					var unitSampleIndex = sampleIndex / (numberOfSamples - 1)
+					var baseSampleAmplitude = amplitude * Math.sin(unitSampleIndex * Math.PI)
+					var sampleAmplitude = Math.sin(unitSampleIndex * Math.PI * 2.0 * frequency + transverseVelocity * Timestamp.currentTimestamp()) * baseSampleAmplitude
+					var waveVector = waveUnitVector.multiply(sampleAmplitude)
+					var segmentPosition = from.add(lineVector.multiply(sampleIndex / (numberOfSamples - 1)))
+					segments.push(new Segment(segmentPosition.add(waveVector)))
+				}
+				touchBurst.segments = segments
+			}})
+		]
+
+		afterDuration(leewayBetweenTouchAndBeat, function() {
+			touchBurst.parent = undefined
+			touchBurst.behaviors = []
+			touchBursts.splice(touchBursts.indexOf(touchBurst), 1)	
+		})
+	} else {
+		// TODO: Define what happens if all beats are already paired.
+	}
 }
 
 function beatBehavior(beat) {
@@ -67,8 +117,9 @@ function beatBehavior(beat) {
 
 
 	if (beat.y > beatLineYPosition + beatDiameter / 3.0 && beat.burst === undefined) {
-		if (lastTouchSequence !== null && t - lastTouchSequence.firstSample.timestamp < 0.3) {
-			console.log(t - lastTouchSequence.firstSample.timestamp)
+		if (t - beat.pairedTime < 0.3) {
+			beat.animators.scale.target = new Point({x: 60, y: 60})
+			beat.animators.alpha.target = 0
 			new Sound({name: pitches[beat.pitch]}).play()
 		} else {
 			addBurstEmitter(beat)
@@ -79,6 +130,28 @@ function beatBehavior(beat) {
 	if (beat.emitter !== undefined) {
 		beat.emitter.position = bottomHalf.convertGlobalPointToLocalPoint(beat.parent.convertLocalPointToGlobalPoint(beat.position))
 	}
+
+	if (beat.y > Layer.root.height) {
+		beat.parent = undefined
+		beat.behaviors = []
+		activeBeats.splice(activeBeats.indexOf(beat), 1)
+	}
+}
+
+function nearestUnpairedBeatToPoint(point) {
+	var nearestBeat = undefined
+	var nearestBeatDistance = Number.MAX_VALUE
+	for (var beat of activeBeats) {
+		var beatDistance = point.distanceToPoint(beat.position)
+		if (beatDistance < nearestBeatDistance &&
+			(beat.pairedTime === undefined || (Timestamp.currentTimestamp() - beat.pairedTime > leewayBetweenTouchAndBeat * 1.5)) &&
+			beat.burst === undefined) {
+			nearestBeatDistance = beatDistance
+			nearestBeat = beat
+		}
+	}
+
+	return nearestBeat
 }
 
 function addBurstEmitter(layer) {
