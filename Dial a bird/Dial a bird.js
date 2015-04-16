@@ -6,21 +6,40 @@ Layer.root.image = new Image({name: "bg"})
 // Initial objects
 //-------------------------
 
+var scrollerHeight = 165
+var onesScrollLayer = makeGrippyScrollLayer(1)
 
-var scrollLayer = new ScrollLayer()
-scrollLayer.backgroundColor = new Color({hex: "F7F7F7"})
-scrollLayer.frame = new Rect({x: 0, y: 0, width: 130, height: 165})
-scrollLayer.showsVerticalScrollIndicator = false
+onesScrollLayer.moveToCenterOfParentLayer()
 
-var numberStrip = new Layer({imageName: 'number-strip', parent: scrollLayer})
-numberStrip.origin = Point.zero
 
-var heightPerNumberCell = numberStrip.height / 9
 
-// easter egg here would lead to the scrollable size including the easter egg
-scrollLayer.updateScrollableSizeToFitSublayers()
-// NOW add easter egg
-// or don't call updateScrollableSizeToFitSublayers and instead manually set the scrollableSize to be what you want
+function makeGrippyScrollLayer(unit /* ones, tens, hundreds, etc. */) {
+	
+	var container = new Layer()
+	var grippyLayer = new Layer({imageName: "grippy", parent: container})
+	var scrollLayer = new ScrollLayer({parent: container})
+	
+	scrollLayer.backgroundColor = new Color({hex: "F7F7F7"})
+	
+	scrollLayer.frame = new Rect({x: 0, y: 0, width: 130, height: scrollerHeight})
+	
+	container.width = 130
+	container.height = scrollLayer.height + grippyLayer.height
+	
+	grippyLayer.origin = Point.zero
+	grippyLayer.moveToHorizontalCenterOfParentLayer()
+	
+	scrollLayer.showsVerticalScrollIndicator = false
+	scrollLayer.moveBelowSiblingLayer({siblingLayer: grippyLayer, margin: -8})
+	scrollLayer.cornerRadius = 8
+	
+	makeScrollNumbersForScrollLayer(scrollLayer)
+	scrollLayer.updateScrollableSizeToFitSublayers()
+	makeScrollLayerLandEvenly(scrollLayer)
+	makeScrollLayerDraggable(container, grippyLayer)
+	
+	return container
+}
 
 var label = new TextLayer()
 label.fontName = "Futura"
@@ -55,8 +74,8 @@ function addBird() {
 }
 
 
-scrollLayer.behaviors = [new ActionBehavior({handler: function() {
-	var currentDigit = Math.round(scrollLayer.bounds.origin.y / heightPerNumberCell) + 1
+onesScrollLayer.behaviors = [new ActionBehavior({handler: function() {
+	var currentDigit = Math.round(onesScrollLayer.bounds.origin.y / onesScrollLayer.height) + 1
 	var clippedDigit = clip({value: currentDigit, min: 1, max: 9})
 	
 	if (birds.length < clippedDigit) {
@@ -69,10 +88,48 @@ scrollLayer.behaviors = [new ActionBehavior({handler: function() {
 	label.text = currentDigit.toString()
 }})]
 
+function makeScrollLayerDraggable(container, dragger) {
+	
+	// dragger.gestures = [
+	// 	new PanGesture({handler: function(phase, sequence) {
+	// 		container.position = sequence.currentSample.globalLocation
+	// 	}})
+	// ]
+	var initialPositionInContainer = new Point()
+	dragger.touchBeganHandler = function(touchSequence) {
+		initialPositionInContainer = touchSequence.currentSample.locationInLayer(container)
+	}
+	
+	dragger.touchMovedHandler = function(touchSequence) {
+		var position = touchSequence.currentSample.globalLocation
+		container.origin = position.subtract(initialPositionInContainer)
+	}
+}
+
 // Make the scroll layer always land evenly on a number. Maybe this common-case implementation should become API at some point.
-scrollLayer.decelerationRetargetingHandler = function(velocity, target) {
-	var roundingFunction = velocity.y == 0 ? Math.round : (velocity.y > 0 ? Math.ceil : Math.floor)
-	var roundedTargetY = roundingFunction(target.y / heightPerNumberCell) * heightPerNumberCell
-	var clippedTargetY = clip({value: roundedTargetY, min: 0, max: scrollLayer.scrollableSize.height})
-	return new Point({x: target.x, y: clippedTargetY})
+function makeScrollLayerLandEvenly(scrollLayer) {
+	scrollLayer.decelerationRetargetingHandler = function(velocity, target) {
+		var roundingFunction = velocity.y == 0 ? Math.round : (velocity.y > 0 ? Math.ceil : Math.floor)
+		var roundedTargetY = roundingFunction(target.y / scrollerHeight) * scrollerHeight
+		var clippedTargetY = clip({value: roundedTargetY, min: 0, max: scrollLayer.scrollableSize.height})
+		
+		return new Point({x: target.x, y: clippedTargetY})
+	}
+}
+
+
+function makeScrollNumbersForScrollLayer(layer) {
+	var y = 0
+	for (var counter = 1; counter < 10; counter++) {
+		var textLabel = new TextLayer({parent: layer})
+		
+		textLabel.text = counter.toString()
+		textLabel.textAlignment = TextAlignment.Center
+		textLabel.fontName = "Futura"
+		textLabel.fontSize = 190
+		textLabel.height = layer.height
+		textLabel.moveToHorizontalCenterOfParentLayer()
+		textLabel.originY = y
+		y = textLabel.originY + textLabel.height
+	}
 }
