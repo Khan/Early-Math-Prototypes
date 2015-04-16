@@ -52,13 +52,14 @@ var touchBursts = []
 
 bottomHalf.touchBeganHandler = function(touchSequence) {
 	var nearestBeat = nearestUnpairedBeatToPoint(touchSequence.firstSample.globalLocation)
+	var touchLocationInBottomHalf = bottomHalf.convertGlobalPointToLocalPoint(touchSequence.firstSample.globalLocation)
 	if (nearestBeat !== undefined) {
 		nearestBeat.pairedTime = Timestamp.currentTimestamp()
 
 		lastTouchSequence = touchSequence
 		// TODO(andy): You should be able to resize the frame of a shape layer and make the shape resize. Maybe? I dunno...
 
-		var from = bottomHalf.convertGlobalPointToLocalPoint(touchSequence.firstSample.globalLocation)
+		var from = touchLocationInBottomHalf
 		var to = new Point({x: nearestBeat.x, y: 0})
 
 		var touchBurst = new ShapeLayer({parent: bottomHalf})
@@ -73,19 +74,21 @@ bottomHalf.touchBeganHandler = function(touchSequence) {
 
 		touchBurst.behaviors = [
 			new ActionBehavior({handler: function() {
+				var numberOfSamples = 100
+				var frequency = 5
+				var amplitude = 20
+				var transverseVelocity = -40
+				var maximumStrokeWidth = 7
+
 				var unitTime = clip({value: (Timestamp.currentTimestamp() - startTime) / (leewayBetweenTouchAndBeat * 0.9), min: 0, max: 1})
 				var lineVector = to.subtract(from).multiply(1)
 				var angle = Math.atan2(lineVector.y, lineVector.x)
 				var normalAngle = angle + Math.PI / 2.0
 				var waveUnitVector = new Point({x: Math.cos(normalAngle), y: Math.sin(normalAngle)})
 
-				var segments = []
 				touchBurst.strokeWidth = Math.sin(unitTime * Math.PI) * 7
-
-				var numberOfSamples = 100
-				var frequency = 5
-				var amplitude = 20
-				var transverseVelocity = -40
+				
+				var segments = []
 				for (var sampleIndex = 0; sampleIndex < numberOfSamples; sampleIndex++) {
 					var unitSampleIndex = sampleIndex / (numberOfSamples - 1)
 					var baseSampleAmplitude = amplitude * Math.sin(unitSampleIndex * Math.PI)
@@ -104,7 +107,23 @@ bottomHalf.touchBeganHandler = function(touchSequence) {
 			touchBursts.splice(touchBursts.indexOf(touchBurst), 1)	
 		})
 	} else {
-		// TODO: Define what happens if all beats are already paired.
+		var burst = new Layer({parent: bottomHalf})
+		burst.position = touchLocationInBottomHalf
+		burst.width = burst.height = 1
+		burst.border = new Border({width: 2, color: new Color({white: 0.8})})
+		burst.behaviors = [
+			new ActionBehavior({handler: function() {
+				var fizzleTime = 0.4
+				var maximumSize = 60
+				var unitTime = (Timestamp.currentTimestamp() - touchSequence.firstSample.timestamp) / fizzleTime
+				burst.width = burst.height = Math.sin(unitTime * Math.PI) * maximumSize
+				burst.cornerRadius = burst.width / 2.0
+				if (unitTime >= 1) {
+					burst.parent = undefined
+					burst.behaviors = []
+				}
+			}})
+		]
 	}
 }
 
