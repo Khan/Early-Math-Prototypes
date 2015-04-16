@@ -7,35 +7,47 @@ Layer.root.image = new Image({name: "bg"})
 //-------------------------
 
 var scrollerHeight = 165
+var tensScrollLayer = makeGrippyScrollLayer(10)
 var onesScrollLayer = makeGrippyScrollLayer(1)
 
 onesScrollLayer.moveToCenterOfParentLayer()
+tensScrollLayer.moveToCenterOfParentLayer()
+tensScrollLayer.moveToLeftOfSiblingLayer({siblingLayer: onesScrollLayer})
 
 
-
-function makeGrippyScrollLayer(unit /* ones, tens, hundreds, etc. */) {
+function makeGrippyScrollLayer(unit /* 1, 10, 100, etc. */) {
 	
 	var container = new Layer()
 	var grippyLayer = new Layer({imageName: "grippy", parent: container})
-	var scrollLayer = new ScrollLayer({parent: container})
 	
-	scrollLayer.backgroundColor = new Color({hex: "F7F7F7"})
-	
-	scrollLayer.frame = new Rect({x: 0, y: 0, width: 130, height: scrollerHeight})
-	
-	container.width = 130
-	container.height = scrollLayer.height + grippyLayer.height
+	var scrollerWidth = 130
+	var numberOfScrollers = lengthOfUnit(unit)
+	container.width = scrollerWidth * numberOfScrollers
+	container.height = scrollerHeight + grippyLayer.height
 	
 	grippyLayer.origin = Point.zero
 	grippyLayer.moveToHorizontalCenterOfParentLayer()
+	grippyLayer.position = new Point({x: scrollerWidth / 2.0, y: grippyLayer.position.y})
 	
-	scrollLayer.showsVerticalScrollIndicator = false
-	scrollLayer.moveBelowSiblingLayer({siblingLayer: grippyLayer, margin: -8})
-	scrollLayer.cornerRadius = 8
+	var scrollLayers = []
 	
-	makeScrollNumbersForScrollLayer(scrollLayer)
-	scrollLayer.updateScrollableSizeToFitSublayers()
-	makeScrollLayerLandEvenly(scrollLayer)
+	for (var counter = 0; counter < numberOfScrollers; counter++) {
+		var scrollLayer = new ScrollLayer({parent: container})
+		scrollLayer.backgroundColor = new Color({hex: "F7F7F7"})
+		scrollLayer.frame = new Rect({x: scrollerWidth * counter, y: 0, width: 130, height: scrollerHeight})
+		scrollLayer.showsVerticalScrollIndicator = false
+		scrollLayer.moveBelowSiblingLayer({siblingLayer: grippyLayer, margin: -8})
+		scrollLayer.cornerRadius = 8
+		
+		makeScrollNumbersForScrollLayer(scrollLayer, unit)
+		scrollLayer.updateScrollableSizeToFitSublayers()
+		makeScrollLayerLandEvenly(scrollLayer)
+		
+		scrollLayers.push(scrollLayer)
+		
+	}
+	
+	
 	makeScrollLayerDraggable(container, grippyLayer)
 	
 	return container
@@ -90,11 +102,6 @@ onesScrollLayer.behaviors = [new ActionBehavior({handler: function() {
 
 function makeScrollLayerDraggable(container, dragger) {
 	
-	// dragger.gestures = [
-	// 	new PanGesture({handler: function(phase, sequence) {
-	// 		container.position = sequence.currentSample.globalLocation
-	// 	}})
-	// ]
 	var initialPositionInContainer = new Point()
 	dragger.touchBeganHandler = function(touchSequence) {
 		initialPositionInContainer = touchSequence.currentSample.locationInLayer(container)
@@ -118,9 +125,9 @@ function makeScrollLayerLandEvenly(scrollLayer) {
 }
 
 
-function makeScrollNumbersForScrollLayer(layer) {
+function makeScrollNumbersForScrollLayer(layer, base) {
 	var y = 0
-	for (var counter = 1; counter < 10; counter++) {
+	for (var counter = 0; counter < 10; counter++) {
 		var textLabel = new TextLayer({parent: layer})
 		
 		textLabel.text = counter.toString()
@@ -132,4 +139,8 @@ function makeScrollNumbersForScrollLayer(layer) {
 		textLabel.originY = y
 		y = textLabel.originY + textLabel.height
 	}
+}
+
+function lengthOfUnit(unit) {
+	return unit.toString().length
 }
