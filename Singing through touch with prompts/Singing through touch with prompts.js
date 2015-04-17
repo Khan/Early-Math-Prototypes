@@ -61,48 +61,10 @@ bottomHalf.touchBeganHandler = function(touchSequence) {
 		var from = touchLocationInBottomHalf
 		var to = new Point({x: nearestBeat.x, y: 0})
 
-		var touchBurst = new ShapeLayer({parent: bottomHalf})
-		touchBurst.frame = bottomHalf.bounds
-		touchBurst.fillColor = undefined
-		touchBurst.strokeWidth = 1
-		touchBurst.strokeColor = new Color({white: 0.6})
-		touchBurst.lineCapStyle = LineCapStyle.Round
+		var touchBurst = addSquiggleWave(from, to, leewayBetweenTouchAndBeat * 0.9)
+		touchBurst.parent = bottomHalf
 		touchBursts.push(touchBurst)
-
-		var startTime = touchSequence.firstSample.timestamp
-
-		touchBurst.behaviors = [
-			new ActionBehavior({handler: function() {
-				var numberOfSamples = 100
-				var frequency = 5
-				var amplitude = 20
-				var transverseVelocity = -40
-				var maximumStrokeWidth = 7
-
-				var unitTime = clip({value: (Timestamp.currentTimestamp() - startTime) / (leewayBetweenTouchAndBeat * 0.9), min: 0, max: 1})
-				var lineVector = to.subtract(from).multiply(1)
-				var angle = Math.atan2(lineVector.y, lineVector.x)
-				var normalAngle = angle + Math.PI / 2.0
-				var waveUnitVector = new Point({x: Math.cos(normalAngle), y: Math.sin(normalAngle)})
-
-				touchBurst.strokeWidth = Math.sin(unitTime * Math.PI) * 7
-				
-				var segments = []
-				for (var sampleIndex = 0; sampleIndex < numberOfSamples; sampleIndex++) {
-					var unitSampleIndex = sampleIndex / (numberOfSamples - 1)
-					var baseSampleAmplitude = amplitude * Math.sin(unitSampleIndex * Math.PI)
-					var sampleAmplitude = Math.sin(unitSampleIndex * Math.PI * 2.0 * frequency + transverseVelocity * Timestamp.currentTimestamp()) * baseSampleAmplitude
-					var waveVector = waveUnitVector.multiply(sampleAmplitude)
-					var segmentPosition = from.add(lineVector.multiply(sampleIndex / (numberOfSamples - 1)))
-					segments.push(new Segment(segmentPosition.add(waveVector)))
-				}
-				touchBurst.segments = segments
-			}})
-		]
-
 		afterDuration(leewayBetweenTouchAndBeat, function() {
-			touchBurst.parent = undefined
-			touchBurst.behaviors = []
 			touchBursts.splice(touchBursts.indexOf(touchBurst), 1)	
 		})
 	} else {
@@ -177,7 +139,7 @@ function addSquiggleWave(from, to, duration) {
 			var transverseVelocity = -40
 			var maximumStrokeWidth = 7
 
-			var unitTime = clip({value: (Timestamp.currentTimestamp() - startTime) / (leewayBetweenTouchAndBeat * 0.9), min: 0, max: 1})
+			var unitTime = clip({value: (Timestamp.currentTimestamp() - startTime) / leewayBetweenTouchAndBeat, min: 0, max: 1})
 			var lineVector = to.subtract(from).multiply(1)
 			var angle = Math.atan2(lineVector.y, lineVector.x)
 			var normalAngle = angle + Math.PI / 2.0
@@ -202,6 +164,8 @@ function addSquiggleWave(from, to, duration) {
 		squiggleWave.parent = undefined
 		squiggleWave.behaviors = []
 	})
+
+	return squiggleWave
 }
 
 function nearestUnpairedBeatToPoint(point) {
