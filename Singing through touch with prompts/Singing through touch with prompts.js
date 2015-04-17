@@ -32,13 +32,23 @@ Layer.root.behaviors = [
 			var beatGroup = new Layer({parent: topHalf})
 			beatGroup.frame = new Rect({x: 0, y: -beatDiameter, width: Layer.root.width, height: beatDiameter})
 			beatGroup.beats = []
+			beatGroup.pitch = pitch
+
 			for (var beatIndex = 0; beatIndex <= pitch; beatIndex++) {
 				var beat = makeBeat()
 				beat.parent = beatGroup
-				beat.pitch = pitch
 				beat.x = beatIndex * (beatGroup.width * 0.75 / (pitches.length - 1)) + beatGroup.width * 0.125
 				beatGroup.beats.push(beat)
 			}
+
+			var line = new ShapeLayer.Line({
+				from: new Point({x: beatGroup.beats[0].x, y: beatDiameter / 2.0}),
+				to: new Point({x: beatGroup.beats[beatGroup.beats.length - 1].x, y: beatDiameter / 2.0}),
+				parent: beatGroup
+			})
+			line.strokeColor = Color.orange
+			line.strokeWidth = 4
+
 			beatGroup.behaviors = [new ActionBehavior({handler: function() { beatBehavior(beatGroup) }})]
 			activeBeatGroups.push(beatGroup)
 
@@ -75,7 +85,7 @@ bottomHalf.touchBeganHandler = function(touchSequence) {
 		burst.behaviors = [
 			new ActionBehavior({handler: function() {
 				var fizzleTime = 0.4
-				var maximumSize = 60
+				var maximumSize = 120
 				var unitTime = (Timestamp.currentTimestamp() - touchSequence.firstSample.timestamp) / fizzleTime
 				burst.width = burst.height = Math.sin(unitTime * Math.PI) * maximumSize
 				burst.cornerRadius = burst.width / 2.0
@@ -102,14 +112,36 @@ function beatBehavior(beatGroup) {
 
 	var isPastBurstingLine = beatGroup.y > beatLineYPosition + beatDiameter / 3.0
 	if (isPastBurstingLine && beatGroup.burst === undefined) {
-		if (t - beat.pairedTime < 0.3) {
-			// addSquiggleWave(new Point({x: 0, y: topHalf.frameMaxY}), new Point({x: beat.x, y: topHalf.frameMaxY}), 0.3)
-			// beat.animators.scale.target = new Point({x: 10, y: 10})
-			// beat.animators.alpha.target = 0
-			// new Sound({name: pitches[beat.pitch]}).play()
-		} else {
-			for (var beat of beatGroup.beats) {
+		var activatedSegments = new Set()
+		var matchedBeatCount = 0
+		for (var beatIndex in beatGroup.beats) {
+			beatIndex = parseInt(beatIndex)
+			var beat = beatGroup.beats[beatIndex]
+			if (t - beat.pairedTime < leewayBetweenTouchAndBeat) {
+				matchedBeatCount++
+				if (beatIndex > 0) {
+					activatedSegments.add(beatIndex - 1)
+				}
+				if (beatIndex < beatGroup.beats.length - 1) {
+					activatedSegments.add(beatIndex)
+				}
+			} else {
 				addBurstEmitter(beat)
+			}
+		}
+
+		if (matchedBeatCount === beatGroup.beats.length) {
+			new Sound({name: pitches[beatGroup.pitch]}).play()
+			for (var beat of beatGroup.beats) {
+				beat.animators.scale.target = new Point({x: 30, y: 30})
+				beat.animators.alpha.target = 0
+			}
+		} else {
+			for (var activatedSegment of activatedSegments) {
+				var fromX = beatGroup.beats[activatedSegment].x
+				var toX = beatGroup.beats[activatedSegment + 1].x
+				var squiggleWave = addSquiggleWave(new Point({x: fromX, y: topHalf.frameMaxY}), new Point({x: toX, y: topHalf.frameMaxY}), 0.3, 3, 3)
+				squiggleWave.strokeColor = Color.orange
 			}
 		}
 		beatGroup.burst = true
@@ -122,22 +154,23 @@ function beatBehavior(beatGroup) {
 	}
 }
 
-function addSquiggleWave(from, to, duration) {
+function addSquiggleWave(from, to, duration, amplitude, maximumStrokeWidth) {
 	var squiggleWave = new ShapeLayer()
 	squiggleWave.fillColor = undefined
 	squiggleWave.strokeWidth = 1
 	squiggleWave.strokeColor = new Color({white: 0.6})
 	squiggleWave.lineCapStyle = LineCapStyle.Round
+	squiggleWave.lineJoinStyle = LineCapStyle.Round
 
 	var startTime = Timestamp.currentTimestamp()
 
 	squiggleWave.behaviors = [
 		new ActionBehavior({handler: function() {
-			var numberOfSamples = 100
+			var numberOfSamples = 20
 			var frequency = 5
-			var amplitude = 20
 			var transverseVelocity = -40
-			var maximumStrokeWidth = 7
+			var effectiveMaximumStrokeWidth = maximumStrokeWidth || 7
+			var effectiveAmplitude = amplitude || 20
 
 			var unitTime = clip({value: (Timestamp.currentTimestamp() - startTime) / leewayBetweenTouchAndBeat, min: 0, max: 1})
 			var lineVector = to.subtract(from).multiply(1)
@@ -145,12 +178,12 @@ function addSquiggleWave(from, to, duration) {
 			var normalAngle = angle + Math.PI / 2.0
 			var waveUnitVector = new Point({x: Math.cos(normalAngle), y: Math.sin(normalAngle)})
 
-			squiggleWave.strokeWidth = Math.sin(unitTime * Math.PI) * 7
+			squiggleWave.strokeWidth = Math.sin(unitTime * Math.PI) * effectiveMaximumStrokeWidth
 			
 			var segments = []
 			for (var sampleIndex = 0; sampleIndex < numberOfSamples; sampleIndex++) {
 				var unitSampleIndex = sampleIndex / (numberOfSamples - 1)
-				var baseSampleAmplitude = amplitude * Math.sin(unitSampleIndex * Math.PI)
+				var baseSampleAmplitude = effectiveAmplitude * Math.sin(unitSampleIndex * Math.PI)
 				var sampleAmplitude = Math.sin(unitSampleIndex * Math.PI * 2.0 * frequency + transverseVelocity * Timestamp.currentTimestamp()) * baseSampleAmplitude
 				var waveVector = waveUnitVector.multiply(sampleAmplitude)
 				var segmentPosition = from.add(lineVector.multiply(sampleIndex / (numberOfSamples - 1)))
