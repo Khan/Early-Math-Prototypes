@@ -9,39 +9,38 @@ var beatDiameter = 50
 var leewayBetweenTouchAndBeat = 0.3 // in seconds
 var pitches = ["cat_e", "cat_fsharp", "cat_gsharp", "cat_a", "cat_b"]
 
-var topHalf = new Layer()
-topHalf.frame = new Rect({x: 0, y: 0, width: Layer.root.width, height: beatLineYPosition})
-topHalf.backgroundColor = new Color({white: 0.97})
-topHalf.cornerRadius = 1 // Hack to make the top half clip to bounds. TODO(andy): make real Prototope API for this
-topHalf.zPosition = 1000
-
 var bottomHalf = new Layer()
 bottomHalf.frame = new Rect({x: 0, y: beatLineYPosition, width: Layer.root.width, height: Layer.root.height - beatLineYPosition})
 bottomHalf.backgroundColor = Color.white
 
+var topHalf = new Layer()
+topHalf.frame = new Rect({x: 0, y: 0, width: Layer.root.width, height: beatLineYPosition})
+topHalf.backgroundColor = new Color({white: 0.97})
+topHalf.cornerRadius = 1 // Hack to make the top half clip to bounds. TODO(andy): make real Prototope API for this
+
 var lastBeatEmissionTime = Timestamp.currentTimestamp() - timeBetweenEmission
 var lastTouchSequence = null
 
-var activeBeats = []
+var activeBeatGroups = []
 
 Layer.root.behaviors = [
 	new ActionBehavior({handler: function() {
 		var t = Timestamp.currentTimestamp()
 		if (t > lastBeatEmissionTime + timeBetweenEmission) {
-			var beat = new ShapeLayer.Circle({center: Layer.root.position, radius: beatDiameter / 2.0, parent: topHalf})
-			beat.fillColor = Color.orange
-			beat.strokeColor = undefined
-			beat.originY = -beatDiameter
-			beat.pitch = Math.floor(Math.random() * pitches.length)
-			beat.x = beat.pitch * (Layer.root.width * 0.75 / (pitches.length - 1)) + Layer.root.width * 0.125
-			beat.behaviors = [new ActionBehavior({handler: function() { beatBehavior(beat) }})]
+			var pitch = Math.floor(Math.random() * pitches.length)
 
-			beat.animators.alpha.springBounciness = 0
-			beat.animators.alpha.springSpeed = 5
-			beat.animators.scale.springBounciness = 0
-			beat.animators.scale.springSpeed = 5
-
-			activeBeats.push(beat)
+			var beatGroup = new Layer({parent: topHalf})
+			beatGroup.frame = new Rect({x: 0, y: -beatDiameter, width: Layer.root.width, height: beatDiameter})
+			beatGroup.beats = []
+			for (var beatIndex = 0; beatIndex <= pitch; beatIndex++) {
+				var beat = makeBeat()
+				beat.parent = beatGroup
+				beat.pitch = pitch
+				beat.x = beatIndex * (beatGroup.width * 0.75 / (pitches.length - 1)) + beatGroup.width * 0.125
+				beatGroup.beats.push(beat)
+			}
+			beatGroup.behaviors = [new ActionBehavior({handler: function() { beatBehavior(beatGroup) }})]
+			activeBeatGroups.push(beatGroup)
 
 			lastBeatEmissionTime = t
 		}
@@ -127,46 +126,99 @@ bottomHalf.touchBeganHandler = function(touchSequence) {
 	}
 }
 
-function beatBehavior(beat) {
+function beatBehavior(beatGroup) {
 	var t = Timestamp.currentTimestamp()
-	if (beat.lastMovementTimestamp !== undefined) {
-		beat.y += (t - beat.lastMovementTimestamp) * beatVelocity
-	}
-	beat.lastMovementTimestamp = t
-
-
-	if (beat.y > beatLineYPosition + beatDiameter / 3.0 && beat.burst === undefined) {
-		if (t - beat.pairedTime < 0.3) {
-			beat.animators.scale.target = new Point({x: 60, y: 60})
-			beat.animators.alpha.target = 0
-			new Sound({name: pitches[beat.pitch]}).play()
-		} else {
-			addBurstEmitter(beat)
+	if (beatGroup.lastMovementTimestamp !== undefined) {
+		beatGroup.y += (t - beatGroup.lastMovementTimestamp) * beatVelocity
+		for (var beat of beatGroup.beats) {
+			if (beat.emitter !== undefined) {
+				beat.emitter.position = bottomHalf.convertGlobalPointToLocalPoint(beat.parent.convertLocalPointToGlobalPoint(beat.position))
+			}
 		}
-		beat.burst = true
+	}
+	beatGroup.lastMovementTimestamp = t
+
+	var isPastBurstingLine = beatGroup.y > beatLineYPosition + beatDiameter / 3.0
+	if (isPastBurstingLine && beatGroup.burst === undefined) {
+		if (t - beat.pairedTime < 0.3) {
+			// addSquiggleWave(new Point({x: 0, y: topHalf.frameMaxY}), new Point({x: beat.x, y: topHalf.frameMaxY}), 0.3)
+			// beat.animators.scale.target = new Point({x: 10, y: 10})
+			// beat.animators.alpha.target = 0
+			// new Sound({name: pitches[beat.pitch]}).play()
+		} else {
+			for (var beat of beatGroup.beats) {
+				addBurstEmitter(beat)
+			}
+		}
+		beatGroup.burst = true
 	}
 
-	if (beat.emitter !== undefined) {
-		beat.emitter.position = bottomHalf.convertGlobalPointToLocalPoint(beat.parent.convertLocalPointToGlobalPoint(beat.position))
+	if (beatGroup.y > Layer.root.height) {
+		beatGroup.parent = undefined
+		beatGroup.behaviors = []
+		activeBeatGroups.splice(activeBeatGroups.indexOf(beatGroup), 1)
 	}
+}
 
-	if (beat.y > Layer.root.height) {
-		beat.parent = undefined
-		beat.behaviors = []
-		activeBeats.splice(activeBeats.indexOf(beat), 1)
-	}
+function addSquiggleWave(from, to, duration) {
+	var squiggleWave = new ShapeLayer()
+	squiggleWave.fillColor = undefined
+	squiggleWave.strokeWidth = 1
+	squiggleWave.strokeColor = new Color({white: 0.6})
+	squiggleWave.lineCapStyle = LineCapStyle.Round
+
+	var startTime = Timestamp.currentTimestamp()
+
+	squiggleWave.behaviors = [
+		new ActionBehavior({handler: function() {
+			var numberOfSamples = 100
+			var frequency = 5
+			var amplitude = 20
+			var transverseVelocity = -40
+			var maximumStrokeWidth = 7
+
+			var unitTime = clip({value: (Timestamp.currentTimestamp() - startTime) / (leewayBetweenTouchAndBeat * 0.9), min: 0, max: 1})
+			var lineVector = to.subtract(from).multiply(1)
+			var angle = Math.atan2(lineVector.y, lineVector.x)
+			var normalAngle = angle + Math.PI / 2.0
+			var waveUnitVector = new Point({x: Math.cos(normalAngle), y: Math.sin(normalAngle)})
+
+			squiggleWave.strokeWidth = Math.sin(unitTime * Math.PI) * 7
+			
+			var segments = []
+			for (var sampleIndex = 0; sampleIndex < numberOfSamples; sampleIndex++) {
+				var unitSampleIndex = sampleIndex / (numberOfSamples - 1)
+				var baseSampleAmplitude = amplitude * Math.sin(unitSampleIndex * Math.PI)
+				var sampleAmplitude = Math.sin(unitSampleIndex * Math.PI * 2.0 * frequency + transverseVelocity * Timestamp.currentTimestamp()) * baseSampleAmplitude
+				var waveVector = waveUnitVector.multiply(sampleAmplitude)
+				var segmentPosition = from.add(lineVector.multiply(sampleIndex / (numberOfSamples - 1)))
+				segments.push(new Segment(segmentPosition.add(waveVector)))
+			}
+			squiggleWave.segments = segments
+		}})
+	]
+
+	afterDuration(duration, function() {
+		squiggleWave.parent = undefined
+		squiggleWave.behaviors = []
+	})
 }
 
 function nearestUnpairedBeatToPoint(point) {
 	var nearestBeat = undefined
 	var nearestBeatDistance = Number.MAX_VALUE
-	for (var beat of activeBeats) {
-		var beatDistance = point.distanceToPoint(beat.position)
-		if (beatDistance < nearestBeatDistance &&
-			(beat.pairedTime === undefined || (Timestamp.currentTimestamp() - beat.pairedTime > leewayBetweenTouchAndBeat * 1.5)) &&
-			beat.burst === undefined) {
-			nearestBeatDistance = beatDistance
-			nearestBeat = beat
+	for (var beatGroup of activeBeatGroups) {
+		if (beatGroup.burst) {
+			continue
+		}
+
+		for (var beat of beatGroup.beats) {
+			var beatDistance = point.distanceToPoint(beat.position)
+			if (beatDistance < nearestBeatDistance &&
+				(beat.pairedTime === undefined || (Timestamp.currentTimestamp() - beat.pairedTime > leewayBetweenTouchAndBeat * 1.5))) {
+				nearestBeatDistance = beatDistance
+				nearestBeat = beat
+			}
 		}
 	}
 
@@ -203,4 +255,16 @@ function addBurstEmitter(layer) {
 			layer.emitter = undefined
 		})
 	})
+}
+
+function makeBeat() {
+	var beat = new ShapeLayer.Circle({center: Layer.root.position, radius: beatDiameter / 2.0, parent: topHalf})
+	beat.fillColor = Color.orange
+	beat.strokeColor = undefined
+	beat.origin = Point.zero
+	beat.animators.alpha.springBounciness = 0
+	beat.animators.alpha.springSpeed = 5
+	beat.animators.scale.springBounciness = 0
+	beat.animators.scale.springSpeed = 5
+	return beat
 }
