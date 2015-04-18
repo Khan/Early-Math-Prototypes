@@ -4,10 +4,11 @@ if (Layer.root.width !== 1024) {
 
 var beatLineYPosition = 300
 var beatVelocity = 300 // points per second
-var timeBetweenEmission = 1.0 // in seconds
+var timeBetweenEmission = 0.5 // in seconds
 var beatDiameter = 50
-var leewayBetweenTouchAndBeat = 0.3 // in seconds
+var leewayBetweenTouchAndBeat = 0.4 // in seconds
 var pitches = ["cat_e", "cat_fsharp", "cat_gsharp", "cat_a", "cat_b"]
+var song = [0, 0, null, 0, 1, 1, null, null, 2, 2, null, 2, 3, 3, null, 4]
 
 var bottomHalf = new Layer()
 bottomHalf.frame = new Rect({x: 0, y: beatLineYPosition, width: Layer.root.width, height: Layer.root.height - beatLineYPosition})
@@ -22,36 +23,38 @@ var lastBeatEmissionTime = Timestamp.currentTimestamp() - timeBetweenEmission
 var lastTouchSequence = null
 
 var activeBeatGroups = []
-
+var currentNote = 0
 Layer.root.behaviors = [
 	new ActionBehavior({handler: function() {
 		var t = Timestamp.currentTimestamp()
 		if (t > lastBeatEmissionTime + timeBetweenEmission) {
-			var pitch = Math.floor(Math.random() * pitches.length)
+			var pitch = song[currentNote]
+			if (pitch !== null) {
+				var beatGroup = new Layer({parent: topHalf})
+				beatGroup.frame = new Rect({x: 0, y: -beatDiameter, width: Layer.root.width, height: beatDiameter})
+				beatGroup.beats = []
+				beatGroup.pitch = pitch
 
-			var beatGroup = new Layer({parent: topHalf})
-			beatGroup.frame = new Rect({x: 0, y: -beatDiameter, width: Layer.root.width, height: beatDiameter})
-			beatGroup.beats = []
-			beatGroup.pitch = pitch
+				for (var beatIndex = 0; beatIndex <= pitch; beatIndex++) {
+					var beat = makeBeat()
+					beat.parent = beatGroup
+					beat.x = beatIndex * (beatGroup.width * 0.75 / (pitches.length - 1)) + beatGroup.width * 0.125
+					beatGroup.beats.push(beat)
+				}
 
-			for (var beatIndex = 0; beatIndex <= pitch; beatIndex++) {
-				var beat = makeBeat()
-				beat.parent = beatGroup
-				beat.x = beatIndex * (beatGroup.width * 0.75 / (pitches.length - 1)) + beatGroup.width * 0.125
-				beatGroup.beats.push(beat)
+				var line = new ShapeLayer.Line({
+					from: new Point({x: beatGroup.beats[0].x, y: beatDiameter / 2.0}),
+					to: new Point({x: beatGroup.beats[beatGroup.beats.length - 1].x, y: beatDiameter / 2.0}),
+					parent: beatGroup
+				})
+				line.strokeColor = Color.orange
+				line.strokeWidth = 4
+
+				beatGroup.behaviors = [new ActionBehavior({handler: function() { beatBehavior(beatGroup) }})]
+				activeBeatGroups.push(beatGroup)
 			}
 
-			var line = new ShapeLayer.Line({
-				from: new Point({x: beatGroup.beats[0].x, y: beatDiameter / 2.0}),
-				to: new Point({x: beatGroup.beats[beatGroup.beats.length - 1].x, y: beatDiameter / 2.0}),
-				parent: beatGroup
-			})
-			line.strokeColor = Color.orange
-			line.strokeWidth = 4
-
-			beatGroup.behaviors = [new ActionBehavior({handler: function() { beatBehavior(beatGroup) }})]
-			activeBeatGroups.push(beatGroup)
-
+			currentNote = (currentNote + 1) % song.length
 			lastBeatEmissionTime = t
 		}
 	}})
@@ -131,7 +134,7 @@ function beatBehavior(beatGroup) {
 		}
 
 		if (matchedBeatCount === beatGroup.beats.length) {
-			new Sound({name: pitches[beatGroup.pitch]}).play()
+			new Sound({name: pitches[beatGroup.beats.length - 1]}).play()
 			for (var beat of beatGroup.beats) {
 				beat.animators.scale.target = new Point({x: 30, y: 30})
 				beat.animators.alpha.target = 0
@@ -144,6 +147,7 @@ function beatBehavior(beatGroup) {
 				squiggleWave.strokeColor = Color.orange
 			}
 		}
+
 		beatGroup.burst = true
 	}
 
@@ -216,6 +220,10 @@ function nearestUnpairedBeatToPoint(point) {
 				nearestBeatDistance = beatDistance
 				nearestBeat = beat
 			}
+		}
+		
+		if (nearestBeat !== undefined) {
+			break
 		}
 	}
 
