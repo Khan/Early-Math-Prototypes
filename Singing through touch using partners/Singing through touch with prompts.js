@@ -66,45 +66,6 @@ Layer.root.behaviors = [
 
 var touchBursts = []
 
-bottomHalf.touchBeganHandler = function(touchSequence) {
-	var nearestBeat = nearestUnpairedBeatToPoint(touchSequence.firstSample.globalLocation)
-	var touchLocationInBottomHalf = bottomHalf.convertGlobalPointToLocalPoint(touchSequence.firstSample.globalLocation)
-	if (nearestBeat !== undefined) {
-		nearestBeat.pairedTime = Timestamp.currentTimestamp()
-
-		lastTouchSequence = touchSequence
-		// TODO(andy): You should be able to resize the frame of a shape layer and make the shape resize. Maybe? I dunno...
-
-		var from = touchLocationInBottomHalf
-		var to = new Point({x: nearestBeat.x, y: 0})
-
-		var touchBurst = addSquiggleWave(from, to, leewayBetweenTouchAndBeat * 0.9)
-		touchBurst.parent = bottomHalf
-		touchBursts.push(touchBurst)
-		afterDuration(leewayBetweenTouchAndBeat, function() {
-			touchBursts.splice(touchBursts.indexOf(touchBurst), 1)	
-		})
-	} else {
-		var burst = new Layer({parent: bottomHalf})
-		burst.position = touchLocationInBottomHalf
-		burst.width = burst.height = 1
-		burst.border = new Border({width: 2, color: new Color({white: 0.8})})
-		burst.behaviors = [
-			new ActionBehavior({handler: function() {
-				var fizzleTime = 0.4
-				var maximumSize = 120
-				var unitTime = (Timestamp.currentTimestamp() - touchSequence.firstSample.timestamp) / fizzleTime
-				burst.width = burst.height = Math.sin(unitTime * Math.PI) * maximumSize
-				burst.cornerRadius = burst.width / 2.0
-				if (unitTime >= 1) {
-					burst.parent = undefined
-					burst.behaviors = []
-				}
-			}})
-		]
-	}
-}
-
 function beatBehavior(beatGroup) {
 	var t = Timestamp.currentTimestamp()
 	if (beatGroup.lastMovementTimestamp !== undefined) {
@@ -124,7 +85,7 @@ function beatBehavior(beatGroup) {
 		for (var beatIndex in beatGroup.beats) {
 			beatIndex = parseInt(beatIndex)
 			var beat = beatGroup.beats[beatIndex]
-			if (t - beat.pairedTime < leewayBetweenTouchAndBeat) {
+			if (beat.pairedTime !== undefined) {
 				matchedBeatCount++
 				if (beatIndex > 0) {
 					activatedSegments.add(beatIndex - 1)
@@ -212,11 +173,9 @@ function addSquiggleWave(from, to, duration, amplitude, maximumStrokeWidth) {
 function nearestUnpairedBeatToPoint(point) {
 	var nearestBeat = undefined
 	var nearestBeatDistance = Number.MAX_VALUE
-	for (var beatGroup of activeBeatGroups) {
-		if (beatGroup.burst) {
-			continue
-		}
+	var beatGroup = activeBeatGroups[0] // only use the oldest beat group; assume that first element is oldest
 
+	if (!beatGroup.burst) {
 		for (var beat of beatGroup.beats) {
 			var beatDistance = point.distanceToPoint(beat.position)
 			if (beatDistance < nearestBeatDistance &&
@@ -224,10 +183,6 @@ function nearestUnpairedBeatToPoint(point) {
 				nearestBeatDistance = beatDistance
 				nearestBeat = beat
 			}
-		}
-		
-		if (nearestBeat !== undefined) {
-			break
 		}
 	}
 
