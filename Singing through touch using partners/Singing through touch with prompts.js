@@ -4,11 +4,11 @@ if (Layer.root.width !== 1024) {
 
 var beatLineYPosition = 615
 var beatVelocity = 300 // points per second
-var timeBetweenEmission = 1.0 // in seconds
+var timeBetweenEmission = 3.0 // in seconds
 var beatDiameter = 50
 var leewayBetweenTouchAndBeat = 0.4 // in seconds
 var pitches = ["cat_e", "cat_fsharp", "cat_gsharp", "cat_a", "cat_b"]
-var song = [0, 0, null, 0, 1, 1, null, null, 2, 2, null, 2, 3, 3, null, 4]
+var song = [0, 1, 2, 3, 4, 3, 2, 4, 1, 0]
 
 var bottomHalf = new Layer()
 bottomHalf.frame = new Rect({x: 0, y: beatLineYPosition, width: Layer.root.width, height: Layer.root.height - beatLineYPosition})
