@@ -19,7 +19,7 @@ topHalf.frame = new Rect({x: 0, y: 0, width: Layer.root.width, height: beatLineY
 topHalf.backgroundColor = new Color({white: 0.97})
 topHalf.cornerRadius = 1 // Hack to make the top half clip to bounds. TODO(andy): make real Prototope API for this
 
-makeToolbar()
+makeToolbar([1, 2, 3, 5])
 
 var lastBeatEmissionTime = Timestamp.currentTimestamp() - timeBetweenEmission
 var lastTouchSequence = null
@@ -266,7 +266,7 @@ function addBurstEmitter(layer) {
 	})
 }
 
-function makeToolbar() {
+function makeToolbar(dotCounts) {
 	var toolbarParent = bottomHalf
 	var toolbarContainer = new Layer({parent: toolbarParent})
 	toolbarContainer.width = toolbarParent.width
@@ -275,7 +275,8 @@ function makeToolbar() {
 	toolbarContainer.originY = 0
 	var availableButtons = 5
 
-	for (var buttonIndex = 0; buttonIndex < availableButtons; buttonIndex++) {
+	for (const dotCount of dotCounts) {
+		const buttonIndex = dotCount - 1
 		const numberOfDots = buttonIndex + 1
 
 		let buttonContainer = new Layer({parent: toolbarContainer})
