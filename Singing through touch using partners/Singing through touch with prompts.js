@@ -10,6 +10,15 @@ var leewayBetweenTouchAndBeat = 0.4 // in seconds
 var pitches = ["cat_e", "cat_fsharp", "cat_gsharp", "cat_a", "cat_b"]
 var song = [0, 1, 2, 3, 4, 3, 2, 4, 1, 0]
 
+// Doing this the stupid way (like everything else in this prototype):
+var partitions = {
+	1: [[1]],
+	2: [[1, 1], [2]],
+	3: [[1, 1, 1], [1, 2], [3]],
+	4: [[1, 1, 1, 1], [1, 3], [1, 1, 2], [2, 2], [4]],
+	5: [[1, 1, 1, 1, 1], [1, 4], [1, 1, 3], [1, 1, 1, 2], [2, 3], [2, 2, 1], [5]]
+}
+
 var bottomHalf = new Layer()
 bottomHalf.frame = new Rect({x: 0, y: beatLineYPosition, width: Layer.root.width, height: Layer.root.height - beatLineYPosition})
 bottomHalf.backgroundColor = Color.white
@@ -19,19 +28,28 @@ topHalf.frame = new Rect({x: 0, y: 0, width: Layer.root.width, height: beatLineY
 topHalf.backgroundColor = new Color({white: 0.97})
 topHalf.cornerRadius = 1 // Hack to make the top half clip to bounds. TODO(andy): make real Prototope API for this
 
-makeToolbar([1, 2, 3, 5])
-
 var lastBeatEmissionTime = Timestamp.currentTimestamp() - timeBetweenEmission
 var lastTouchSequence = null
 
 var activeBeatGroups = []
 var currentNote = 0
+
+var currentToolbar = null
+
 Layer.root.behaviors = [
 	new ActionBehavior({handler: function() {
 		var t = Timestamp.currentTimestamp()
 		if (t > lastBeatEmissionTime + timeBetweenEmission) {
 			var pitch = song[currentNote]
 			if (pitch !== null) {
+				if (currentToolbar !== null) {
+					currentToolbar.parent = undefined
+				}
+
+				var availablePartitions = partitions[pitch + 1]
+				var partitioning = availablePartitions[Math.floor(Math.random() * availablePartitions.length)]
+				makeToolbar(partitioning)
+
 				var beatGroup = new Layer({parent: topHalf})
 				beatGroup.frame = new Rect({x: 0, y: -beatDiameter, width: Layer.root.width, height: beatDiameter})
 				beatGroup.beats = []
@@ -179,7 +197,7 @@ function nearestUnpairedBeatToPoint(point) {
 		for (var beat of beatGroup.beats) {
 			var beatDistance = point.distanceToPoint(beat.position)
 			if (beatDistance < nearestBeatDistance &&
-				(beat.pairedTime === undefined || (Timestamp.currentTimestamp() - beat.pairedTime > leewayBetweenTouchAndBeat * 1.5))) {
+				(beat.pairedTime === undefined)) {
 				nearestBeatDistance = beatDistance
 				nearestBeat = beat
 			}
@@ -221,6 +239,8 @@ function addBurstEmitter(layer) {
 	})
 }
 
+const availableButtons = 5
+
 function makeToolbar(dotCounts) {
 	var toolbarParent = bottomHalf
 	var toolbarContainer = new Layer({parent: toolbarParent})
@@ -228,69 +248,75 @@ function makeToolbar(dotCounts) {
 	toolbarContainer.height = 150
 	toolbarContainer.originX = 0
 	toolbarContainer.originY = 0
-	var availableButtons = 5
 
 	for (const dotCount of dotCounts) {
-		const buttonIndex = dotCount - 1
-		const numberOfDots = buttonIndex + 1
+		makeToolbarButton(toolbarContainer, dotCount)
+	}
 
-		let buttonContainer = new Layer({parent: toolbarContainer})
-		buttonContainer.width = toolbarContainer.width / availableButtons
-		buttonContainer.height = toolbarContainer.height
-		buttonContainer.originX = buttonIndex * buttonContainer.width
-		buttonContainer.originY = 0
+	currentToolbar = toolbarContainer
+}
 
-		buttonContainer.touchBeganHandler = () => {
-			buttonContainer.alpha = 0.5
-		}
-		buttonContainer.touchEndedHandler = touchSequence => {
-			buttonContainer.alpha = 1.0
+function makeToolbarButton(toolbarContainer, dotCount) {
+	const buttonIndex = dotCount - 1
+	const numberOfDots = buttonIndex + 1
 
-			var dots = buttonContainer.sublayers
-			for (let dotIndex = 0; dotIndex < numberOfDots; dotIndex++) {
-				let nearestBeat = nearestUnpairedBeatToPoint(touchSequence.firstSample.globalLocation)
-				if (nearestBeat !== undefined) {
-					nearestBeat.pairedTime = Timestamp.currentTimestamp()
-					let dot = dots[dotIndex]
-					dot.position = dot.globalPosition
-					dot.parent = Layer.root
-					dot.animators.position.target = nearestBeat.globalPosition
-					dot.behaviors = [
-						new ActionBehavior({with: nearestBeat, handler: () => {
-							if (dot.globalPosition.y <= nearestBeat.globalPosition.y) {
-								var beatBehaviors = nearestBeat.behaviors || []
-								beatBehaviors.push(new ActionBehavior({handler: () => {
-									nearestBeat.border = new Border({width: nearestBeat.border.width * 1.2, color: nearestBeat.border.color})
-								}}))
-								nearestBeat.behaviors = beatBehaviors
+	let buttonContainer = new Layer({parent: toolbarContainer})
+	buttonContainer.width = toolbarContainer.width / availableButtons
+	buttonContainer.height = toolbarContainer.height
+	buttonContainer.originX = buttonIndex * buttonContainer.width
+	buttonContainer.originY = 0
 
-								dot.parent = undefined
-								dot.behaviors = []
-							}
-						}})
-					]
+	buttonContainer.touchBeganHandler = () => {
+		buttonContainer.alpha = 0.5
+	}
+	buttonContainer.touchEndedHandler = touchSequence => {
+		var dots = buttonContainer.sublayers
+		for (let dotIndex = 0; dotIndex < numberOfDots; dotIndex++) {
+			let nearestBeat = nearestUnpairedBeatToPoint(touchSequence.firstSample.globalLocation)
+			if (nearestBeat !== undefined) {
+				nearestBeat.pairedTime = Timestamp.currentTimestamp()
+				let dot = dots[dotIndex]
+				dot.position = dot.globalPosition
+				dot.parent = Layer.root
+				dot.animators.position.target = nearestBeat.globalPosition
+				dot.behaviors = [
+					new ActionBehavior({with: nearestBeat, handler: () => {
+						if (dot.globalPosition.y <= nearestBeat.globalPosition.y) {
+							var beatBehaviors = nearestBeat.behaviors || []
+							beatBehaviors.push(new ActionBehavior({handler: () => {
+								nearestBeat.border = new Border({width: nearestBeat.border.width * 1.2, color: nearestBeat.border.color})
+							}}))
+							nearestBeat.behaviors = beatBehaviors
 
-					lastTouchSequence = touchSequence
-					// TODO(andy): You should be able to resize the frame of a shape layer and make the shape resize. Maybe? I dunno...
-				}
+							dot.parent = undefined
+							dot.behaviors = []
+						}
+					}})
+				]
+
+				lastTouchSequence = touchSequence
+				// TODO(andy): You should be able to resize the frame of a shape layer and make the shape resize. Maybe? I dunno...
 			}
 		}
 
-		const dotSeparation = 10
-		const dotDiameter = 20
-		const dotsWidth = numberOfDots * dotDiameter + Math.max(0, numberOfDots - 1) * dotSeparation
-		for (var dotIndex = 0; dotIndex < numberOfDots; dotIndex++) {
-			var dot = new ShapeLayer.Circle({center: Point.zero, radius: dotDiameter / 2.0, parent: buttonContainer})
-			dot.fillColor = Color.orange
-			dot.strokeColor = undefined
-			dot.x = buttonContainer.width / 2.0 - dotsWidth / 2.0 + dotDiameter * (dotIndex + 0.5) + dotSeparation * dotIndex
-			dot.y = buttonContainer.height / 2.0
-			dot.animators.position.springBounciness = 0
-			dot.animators.position.springSpeed = 30
-			dot.animators.scale.springBounciness = 2
-			dot.animators.scale.springSpeed = 40
-		}
+		buttonContainer.parent = undefined
 	}
+
+	const dotSeparation = 10
+	const dotDiameter = 20
+	const dotsWidth = numberOfDots * dotDiameter + Math.max(0, numberOfDots - 1) * dotSeparation
+	for (var dotIndex = 0; dotIndex < numberOfDots; dotIndex++) {
+		var dot = new ShapeLayer.Circle({center: Point.zero, radius: dotDiameter / 2.0, parent: buttonContainer})
+		dot.fillColor = Color.orange
+		dot.strokeColor = undefined
+		dot.x = buttonContainer.width / 2.0 - dotsWidth / 2.0 + dotDiameter * (dotIndex + 0.5) + dotSeparation * dotIndex
+		dot.y = buttonContainer.height / 2.0
+		dot.animators.position.springBounciness = 0
+		dot.animators.position.springSpeed = 30
+		dot.animators.scale.springBounciness = 2
+		dot.animators.scale.springSpeed = 40
+	}
+
 }
 
 function makeBeat() {
