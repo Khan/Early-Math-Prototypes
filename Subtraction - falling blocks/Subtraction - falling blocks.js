@@ -91,14 +91,15 @@ Layer.root.behaviors = [
 				line.strokeWidth = 4
 				line.zPosition = -1
 
-				var line = new ShapeLayer.Line({
+				var targetLine = new ShapeLayer.Line({
 					from: new Point({x: beatGroup.beats[0].x, y: beatDiameter / 2.0}),
 					to: new Point({x: currentTargetBeatGroup.beats[currentTargetBeatGroup.beats.length - 1].x, y: beatDiameter / 2.0}),
 					parent: currentTargetBeatGroup
 				})
-				line.strokeColor = Color.orange
-				line.strokeWidth = 4
-				line.zPosition = -1
+				targetLine.strokeColor = Color.orange
+				targetLine.strokeWidth = 4
+				targetLine.zPosition = -1
+				currentTargetBeatGroup.line = targetLine
 
 
 				beatGroup.behaviors = [new ActionBehavior({handler: function() { beatBehavior(beatGroup) }})]
@@ -127,40 +128,37 @@ function beatBehavior(beatGroup) {
 
 	var isPastBurstingLine = beatGroup.y > currentTargetBeatGroup.y + beatDiameter / 3.0
 	if (isPastBurstingLine && beatGroup.burst === undefined) {
-		var activatedSegments = new Set()
 		var matchedBeatCount = 0
 		for (var beatIndex in beatGroup.beats) {
 			beatIndex = parseInt(beatIndex)
 			var beat = beatGroup.beats[beatIndex]
 			if (beat.pairedTime !== undefined) {
 				matchedBeatCount++
-				if (beatIndex > 0) {
-					activatedSegments.add(beatIndex - 1)
-				}
-				if (beatIndex < beatGroup.beats.length - 1) {
-					activatedSegments.add(beatIndex)
+				if (beatIndex <= beatGroup.pitch) {
+					addBurstEmitter(beat)					
 				}
 			} else {
-				addBurstEmitter(beat)
+				if (beatIndex > beatGroup.pitch) {
+					addBurstEmitter(beat)					
+				}
 			}
 		}
 
 		if (matchedBeatCount === beatGroup.additionalBeats) {
 			// new Sound({name: pitches[beatGroup.beats.length - 1]}).play()
-			for (var beat of beatGroup.beats) {
+			for (var beat of currentTargetBeatGroup.beats) {
 				beat.animators.scale.target = new Point({x: 30, y: 30})
 				beat.animators.alpha.target = 0
 			}
-		} else {
-			for (var activatedSegment of activatedSegments) {
-				var fromX = beatGroup.beats[activatedSegment].x
-				var toX = beatGroup.beats[activatedSegment + 1].x
-				var squiggleWave = addSquiggleWave(new Point({x: fromX, y: topHalf.frameMaxY}), new Point({x: toX, y: topHalf.frameMaxY}), 0.3, 3, 3)
-				squiggleWave.strokeColor = Color.orange
-			}
-		}
 
-		currentTargetBeatGroup.parent = undefined
+			beatGroup.parent = undefined
+			beatGroup.behaviors = []
+			activeBeatGroups.splice(activeBeatGroups.indexOf(beatGroup), 1)
+
+			currentTargetBeatGroup.line.parent = undefined
+		} else {
+			currentTargetBeatGroup.parent = undefined
+		}
 
 		beatGroup.burst = true
 	}
@@ -170,53 +168,6 @@ function beatBehavior(beatGroup) {
 		beatGroup.behaviors = []
 		activeBeatGroups.splice(activeBeatGroups.indexOf(beatGroup), 1)
 	}
-}
-
-function addSquiggleWave(from, to, duration, amplitude, maximumStrokeWidth) {
-	var squiggleWave = new ShapeLayer()
-	squiggleWave.fillColor = undefined
-	squiggleWave.strokeWidth = 1
-	squiggleWave.strokeColor = new Color({white: 0.6})
-	squiggleWave.lineCapStyle = LineCapStyle.Round
-	squiggleWave.lineJoinStyle = LineCapStyle.Round
-
-	var startTime = Timestamp.currentTimestamp()
-
-	squiggleWave.behaviors = [
-		new ActionBehavior({handler: function() {
-			var numberOfSamples = 20
-			var frequency = 5
-			var transverseVelocity = -40
-			var effectiveMaximumStrokeWidth = maximumStrokeWidth || 7
-			var effectiveAmplitude = amplitude || 20
-
-			var unitTime = clip({value: (Timestamp.currentTimestamp() - startTime) / leewayBetweenTouchAndBeat, min: 0, max: 1})
-			var lineVector = to.subtract(from).multiply(1)
-			var angle = Math.atan2(lineVector.y, lineVector.x)
-			var normalAngle = angle + Math.PI / 2.0
-			var waveUnitVector = new Point({x: Math.cos(normalAngle), y: Math.sin(normalAngle)})
-
-			squiggleWave.strokeWidth = Math.sin(unitTime * Math.PI) * effectiveMaximumStrokeWidth
-			
-			var segments = []
-			for (var sampleIndex = 0; sampleIndex < numberOfSamples; sampleIndex++) {
-				var unitSampleIndex = sampleIndex / (numberOfSamples - 1)
-				var baseSampleAmplitude = effectiveAmplitude * Math.sin(unitSampleIndex * Math.PI)
-				var sampleAmplitude = Math.sin(unitSampleIndex * Math.PI * 2.0 * frequency + transverseVelocity * Timestamp.currentTimestamp()) * baseSampleAmplitude
-				var waveVector = waveUnitVector.multiply(sampleAmplitude)
-				var segmentPosition = from.add(lineVector.multiply(sampleIndex / (numberOfSamples - 1)))
-				segments.push(new Segment(segmentPosition.add(waveVector)))
-			}
-			squiggleWave.segments = segments
-		}})
-	]
-
-	afterDuration(duration, function() {
-		squiggleWave.parent = undefined
-		squiggleWave.behaviors = []
-	})
-
-	return squiggleWave
 }
 
 function nearestUnpairedBeatToPoint(point) {
