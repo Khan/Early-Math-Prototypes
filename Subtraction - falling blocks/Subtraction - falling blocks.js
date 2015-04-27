@@ -157,7 +157,10 @@ function beatBehavior(beatGroup) {
 
 			currentTargetBeatGroup.line.parent = undefined
 		} else {
-			currentTargetBeatGroup.parent = undefined
+			for (var beat of currentTargetBeatGroup.beats) {
+				beat.animators.scale.target = new Point({x: 1, y: 0})
+			}
+			currentTargetBeatGroup.line.parent = undefined
 		}
 
 		beatGroup.burst = true
@@ -298,7 +301,7 @@ function makeToolbarButton(toolbarContainer, dotCount) {
 
 function makeBeat(inverted) {
 	let beat = new Layer({parent: topHalf})
-	beat.width = beat.height = beatDiameter
+	beat.width = beat.height = beatDiameter + (inverted ? 10 : 0)
 	const color = Color.orange
 	if (inverted) {
 		beat.border = new Border({width: 5, color: color})
@@ -311,6 +314,6 @@ function makeBeat(inverted) {
 	beat.animators.alpha.springBounciness = 0
 	beat.animators.alpha.springSpeed = 5
 	beat.animators.scale.springBounciness = 0
-	beat.animators.scale.springSpeed = 5
+	beat.animators.scale.springSpeed = 25
 	return beat
 }
