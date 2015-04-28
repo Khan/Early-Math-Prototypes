@@ -3,8 +3,8 @@ if (Layer.root.width !== 1024) {
 }
 
 var beatLineYPosition = 515
-var beatVelocity = 300 // points per second
-var timeBetweenEmission = 3.0 // in seconds
+var beatVelocity = 200 // points per second
+var timeBetweenEmission = 4.0 // in seconds
 var beatDiameter = 50
 var leewayBetweenTouchAndBeat = 0.4 // in seconds
 var pitches = ["cat_e", "cat_fsharp", "cat_gsharp", "cat_a", "cat_b"]
@@ -54,9 +54,10 @@ Layer.root.behaviors = [
 					currentToolbar.parent = undefined
 				}
 
-				var availablePartitions = partitions[pitch + 1]
+				var availablePartitions = partitions[additionalBeats]
 				var partitioning = availablePartitions[Math.floor(Math.random() * availablePartitions.length)]
-				makeToolbar([1, 2, 3, 4, 5])
+				partitioning.push(Math.floor(Math.random() * 5))
+				makeToolbar(partitioning)
 
 				var beatGroup = new Layer()
 				beatGroup.frame = new Rect({x: 0, y: -beatDiameter, width: Layer.root.width, height: beatDiameter})
@@ -142,6 +143,7 @@ function beatBehavior(beatGroup) {
 			}
 		}
 
+		let waitingPeriodBeforeDestroying = 0.3
 		if (matchedBeatCount === beatGroup.additionalBeats) {
 			// new Sound({name: pitches[beatGroup.beats.length - 1]}).play()
 			for (var beat of currentTargetBeatGroup.beats) {
@@ -159,7 +161,10 @@ function beatBehavior(beatGroup) {
 			for (let beatIndex = startingIndex; beatIndex >= 0; beatIndex--) {
 				beatIndex = +beatIndex
 				let beat = beatGroup.beats[beatIndex]
-				afterDuration(0.1 * burstCount, () => {
+
+				const perBeatDelay = 0.1
+				waitingPeriodBeforeDestroying = perBeatDelay * burstCount + 0.2
+				afterDuration(perBeatDelay * burstCount, () => {
 					addBurstEmitter(beat)
 					if (beat.line) {
 						beat.line.animators.scale.springSpeed = 30
@@ -182,7 +187,7 @@ function beatBehavior(beatGroup) {
 
 		beatGroup.burst = true
 
-		afterDuration(0.6, () => {
+		afterDuration(waitingPeriodBeforeDestroying, () => {
 			beatGroup.parent = undefined
 			beatGroup.behaviors = []
 			activeBeatGroups.splice(activeBeatGroups.indexOf(beatGroup), 1)
