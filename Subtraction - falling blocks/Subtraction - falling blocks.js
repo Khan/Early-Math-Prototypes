@@ -58,7 +58,7 @@ Layer.root.behaviors = [
 				var partitioning = availablePartitions[Math.floor(Math.random() * availablePartitions.length)]
 				makeToolbar([1, 2, 3, 4, 5])
 
-				var beatGroup = new Layer({parent: topHalf})
+				var beatGroup = new Layer()
 				beatGroup.frame = new Rect({x: 0, y: -beatDiameter, width: Layer.root.width, height: beatDiameter})
 				beatGroup.beats = []
 				beatGroup.pitch = pitch
@@ -69,7 +69,21 @@ Layer.root.behaviors = [
 					beat.parent = beatGroup
 					beat.x = beatIndex * (beatGroup.width * 0.75 / (maximumNumberOfDotsInALine - 1)) + beatGroup.width * 0.125
 					beatGroup.beats.push(beat)
+
+					if (beatIndex > 0) {				
+						let line = new ShapeLayer.Line({
+							from: new Point({x: beatGroup.beats[beatIndex - 1].x, y: beat.frameMaxY / 2.0}),
+							to: new Point({x: beat.x, y: beat.frameMaxY / 2.0}),
+							parent: beatGroup
+						})
+						line.strokeColor = Color.orange
+						line.strokeWidth = 4
+						line.zPosition = -1
+						beat.line = line
+					}
 				}
+
+				beatGroup.height = beatGroup.beats[0].height
 
 				currentTargetBeatGroup = new Layer()
 				currentTargetBeatGroup.frame = new Rect({x: 0, y: beatLineYPosition - beatDiameter / 2.0, width: Layer.root.width, height: beatDiameter})
@@ -81,15 +95,6 @@ Layer.root.behaviors = [
 					beat.x = beatIndex * (beatGroup.width * 0.75 / (maximumNumberOfDotsInALine - 1)) + beatGroup.width * 0.125
 					currentTargetBeatGroup.beats.push(beat)
 				}
-
-				var line = new ShapeLayer.Line({
-					from: new Point({x: beatGroup.beats[0].x, y: beatDiameter / 2.0}),
-					to: new Point({x: beatGroup.beats[beatGroup.beats.length - 1].x, y: beatDiameter / 2.0}),
-					parent: beatGroup
-				})
-				line.strokeColor = Color.orange
-				line.strokeWidth = 4
-				line.zPosition = -1
 
 				var targetLine = new ShapeLayer.Line({
 					from: new Point({x: beatGroup.beats[0].x, y: beatDiameter / 2.0}),
@@ -118,29 +123,22 @@ function beatBehavior(beatGroup) {
 	var t = Timestamp.currentTimestamp()
 	if (beatGroup.lastMovementTimestamp !== undefined) {
 		beatGroup.y += (t - beatGroup.lastMovementTimestamp) * beatVelocity
+		beatGroup.y = clip({value: beatGroup.y, min: 0, max: currentTargetBeatGroup.y})
 		for (var beat of beatGroup.beats) {
 			if (beat.emitter !== undefined) {
-				beat.emitter.position = bottomHalf.convertGlobalPointToLocalPoint(beat.parent.convertLocalPointToGlobalPoint(beat.position))
+				beat.emitter.position = beat.parent.convertLocalPointToGlobalPoint(beat.position)
 			}
 		}
 	}
 	beatGroup.lastMovementTimestamp = t
 
-	var isPastBurstingLine = beatGroup.y > currentTargetBeatGroup.y + beatDiameter / 3.0
+	var isPastBurstingLine = beatGroup.y >= currentTargetBeatGroup.y
 	if (isPastBurstingLine && beatGroup.burst === undefined) {
 		var matchedBeatCount = 0
-		for (var beatIndex in beatGroup.beats) {
-			beatIndex = parseInt(beatIndex)
-			var beat = beatGroup.beats[beatIndex]
+		var burstCount = 0
+		for (var beat of beatGroup.beats) {
 			if (beat.pairedTime !== undefined) {
 				matchedBeatCount++
-				if (beatIndex <= beatGroup.pitch) {
-					addBurstEmitter(beat)					
-				}
-			} else {
-				if (beatIndex > beatGroup.pitch) {
-					addBurstEmitter(beat)					
-				}
 			}
 		}
 
@@ -157,19 +155,39 @@ function beatBehavior(beatGroup) {
 
 			currentTargetBeatGroup.line.parent = undefined
 		} else {
-			for (var beat of currentTargetBeatGroup.beats) {
-				beat.animators.scale.target = new Point({x: 1, y: 0})
+			var startingIndex = Math.max(currentTargetBeatGroup.beats.length - 1, beatGroup.beats.length - matchedBeatCount - 1)
+			for (let beatIndex = startingIndex; beatIndex >= 0; beatIndex--) {
+				beatIndex = +beatIndex
+				let beat = beatGroup.beats[beatIndex]
+				afterDuration(0.1 * burstCount, () => {
+					addBurstEmitter(beat)
+					if (beat.line) {
+						beat.line.animators.scale.springSpeed = 30
+						beat.line.animators.scale.springBounciness = 0
+						beat.line.animators.scale.target = new Point({x: 1, y: 0})	
+					}
+					beat.animators.alpha.target = 0
+
+					if (beatIndex <= beatGroup.pitch) {
+						let targetBeat = currentTargetBeatGroup.beats[beatIndex]
+						targetBeat.animators.alpha.target = 0
+						currentTargetBeatGroup.line.animators.scale.springSpeed = 30
+						currentTargetBeatGroup.line.animators.scale.springBounciness = 0
+						currentTargetBeatGroup.line.animators.scale.target = new Point({x: 1, y: 0})	
+					}
+				})
+				burstCount++
 			}
-			currentTargetBeatGroup.line.parent = undefined
 		}
 
 		beatGroup.burst = true
-	}
 
-	if (beatGroup.y > Layer.root.height) {
-		beatGroup.parent = undefined
-		beatGroup.behaviors = []
-		activeBeatGroups.splice(activeBeatGroups.indexOf(beatGroup), 1)
+		afterDuration(0.6, () => {
+			beatGroup.parent = undefined
+			beatGroup.behaviors = []
+			activeBeatGroups.splice(activeBeatGroups.indexOf(beatGroup), 1)
+			currentTargetBeatGroup.parent = undefined
+		})
 	}
 }
 
@@ -205,9 +223,9 @@ function addBurstEmitter(layer) {
 	particleEmitter.shape = "circle"
 	particleEmitter.shapeMode = "outline"
 
-	bottomHalf.addParticleEmitter(particleEmitter)
+	Layer.root.addParticleEmitter(particleEmitter)
 	particleEmitter.size = new Size({width: beatDiameter, height: beatDiameter})
-	particleEmitter.position = bottomHalf.convertGlobalPointToLocalPoint(layer.parent.convertLocalPointToGlobalPoint(layer.position))
+	particleEmitter.position = layer.parent.convertLocalPointToGlobalPoint(layer.position)
 	layer.emitter = particleEmitter
 
 	afterDuration(0.2, function() {
@@ -264,7 +282,12 @@ function makeToolbarButton(toolbarContainer, dotCount) {
 						if (dot.globalPosition.y <= nearestBeat.globalPosition.y) {
 							var beatBehaviors = nearestBeat.behaviors || []
 							beatBehaviors.push(new ActionBehavior({handler: () => {
-								nearestBeat.border = new Border({width: nearestBeat.border.width * 1.2, color: nearestBeat.border.color})
+								nearestBeat.animators.scale.target = new Point({x: 1, y: 0})
+								if (nearestBeat.line) {
+									nearestBeat.line.animators.scale.springBounciness = 0
+									nearestBeat.line.animators.scale.springSpeed = 100
+									nearestBeat.line.animators.scale.target = new Point({x: 1, y: 0})
+								}
 							}}))
 							nearestBeat.behaviors = beatBehaviors
 
@@ -301,7 +324,7 @@ function makeToolbarButton(toolbarContainer, dotCount) {
 
 function makeBeat(inverted) {
 	let beat = new Layer({parent: topHalf})
-	beat.width = beat.height = beatDiameter + (inverted ? 10 : 0)
+	beat.width = beat.height = beatDiameter + (inverted ? 16 : 0)
 	const color = Color.orange
 	if (inverted) {
 		beat.border = new Border({width: 5, color: color})
@@ -311,9 +334,12 @@ function makeBeat(inverted) {
 	}
 	beat.cornerRadius = beat.width / 2.0
 	beat.origin = Point.zero
+	if (!inverted) {
+		// beat.originY += 8
+	}
 	beat.animators.alpha.springBounciness = 0
-	beat.animators.alpha.springSpeed = 5
+	beat.animators.alpha.springSpeed = 15
 	beat.animators.scale.springBounciness = 0
-	beat.animators.scale.springSpeed = 25
+	beat.animators.scale.springSpeed = 50
 	return beat
 }
