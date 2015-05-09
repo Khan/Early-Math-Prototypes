@@ -13,10 +13,21 @@ bg.userInteractionEnabled = false
 bg.moveToBottomSideOfParentLayer()
 bg.originX = 0
 
+let indexOrder = []
 for (let blockIndex = 0; blockIndex < stairContainerSlotCount; blockIndex++) {
-	var block = makeBlock(blockIndex + 1)
-	block.originX = stairContainerX + blockIndex * blockWidth
-	block.originY = 200
+	indexOrder.push(blockIndex)
+}
+// Fisher-Yates shuffle
+for (let blockIndex = indexOrder.length - 1; blockIndex >= 1; blockIndex--) {
+	const destinationIndex = Math.round(Math.random() * blockIndex)
+	const swap = indexOrder[destinationIndex]
+	indexOrder[destinationIndex] = indexOrder[blockIndex]
+	indexOrder[blockIndex] = swap
+}
+for (let blockIndex = 0; blockIndex < stairContainerSlotCount; blockIndex++) {
+	var block = makeBlock(indexOrder[blockIndex] + 1)
+	block.originX = stairContainerX - 25 + blockIndex * (blockWidth + 5)
+	block.originY = 200 + Math.random() * 100 - 50
 }
 
 let highestBlockZPosition = 0
