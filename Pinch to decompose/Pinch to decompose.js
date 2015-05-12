@@ -1,6 +1,7 @@
 const blockWidth = 60
 const lineWidth = 1.5
 const splittingThreshold = blockWidth * 2
+const blockColor = new Color({hue: 0.08, saturation: 0.67, brightness: 0.91})
 
 let blockContainer = makeBlock(8)
 blockContainer.position = Layer.root.position
@@ -17,6 +18,12 @@ var draggingPartGesture = new PanGesture({cancelsTouchesInLayer: false, handler:
 		}
 		if (hitBlockIndex !== undefined) {
 			draggingPartGesture.hitPartIndex = (hitBlockIndex <= blockContainer.splitPoint) ? 0 : 1
+
+			let connectionLine = new ShapeLayer({parent: blockContainer})
+			connectionLine.segments = [new Segment(blockContainer.blocks[blockContainer.splitPoint].position), new Segment(blockContainer.blocks[blockContainer.splitPoint + 1].position)]
+			connectionLine.strokeColor = blockColor
+			connectionLine.strokeWidth = 0
+			blockContainer.connectionLine = connectionLine
 		}
 	} else if (phase === ContinuousGesturePhase.Changed) {
 		for (let blockIndex = 0; blockIndex < blockContainer.blocks.length; blockIndex++) {
@@ -26,6 +33,9 @@ var draggingPartGesture = new PanGesture({cancelsTouchesInLayer: false, handler:
 				block.position = block.position.add(centroidSequence.currentSample.globalLocation.subtract(centroidSequence.previousSample.globalLocation))
 			}
 		}
+
+		blockContainer.connectionLine.segments = [new Segment(blockContainer.blocks[blockContainer.splitPoint].position), new Segment(blockContainer.blocks[blockContainer.splitPoint + 1].position)]
+		blockContainer.connectionLine.strokeWidth = clip({value: map({fromInterval: [blockWidth, splittingThreshold], toInterval: [10, 0], value: splitDistanceInBlockContainer(blockContainer)}), min: 0, max: 100})
 	} else {
 		if (splitDistanceInBlockContainer(blockContainer) < splittingThreshold) {
 			let offset = undefined
@@ -39,6 +49,18 @@ var draggingPartGesture = new PanGesture({cancelsTouchesInLayer: false, handler:
 			for (let blockIndex = 0; blockIndex < blockContainer.blocks.length; blockIndex++) {
 				blockContainer.blocks[blockIndex].animators.position.target = new Point({x: blockIndex * (blockWidth + lineWidth) + blockWidth / 2.0, y: blockWidth / 2.0})
 			}
+
+			blockContainer.behaviors = [new ActionBehavior({handler: () => {
+				blockContainer.connectionLine.segments = [new Segment(blockContainer.blocks[blockContainer.splitPoint].position), new Segment(blockContainer.blocks[blockContainer.splitPoint + 1].position)]
+				blockContainer.connectionLine.strokeWidth = clip({value: map({fromInterval: [blockWidth, splittingThreshold], toInterval: [10, 0], value: splitDistanceInBlockContainer(blockContainer)}), min: 0, max: 100})
+				blockContainer.connectionLine.alpha = map({fromInterval: [blockWidth, splittingThreshold], toInterval: [0, 1], value: splitDistanceInBlockContainer(blockContainer)})
+				if (blockContainer.connectionLine.alpha <= 0.1) {
+					blockContainer.behaviors = []
+					blockContainer.connectionLine.parent = undefined
+					blockContainer.connectionLine = undefined
+				}
+			}})]
+
 			blockContainer.isSplit = false
 		} else {
 			blockContainer.isSplit = true
@@ -66,7 +88,7 @@ function makeBlock(count) {
 	blockContainer.blocks = []
 	for (var blockIndex = 0; blockIndex < count; blockIndex++) {
 		const block = new Layer({parent: blockContainer})
-		block.backgroundColor = new Color({hue: 0.08, saturation: 0.67, brightness: 0.91})
+		block.backgroundColor = blockColor
 		block.width = blockWidth
 		block.height = blockWidth
 		block.originX = blockIndex * (blockWidth + lineWidth)
@@ -111,10 +133,26 @@ function makeBlock(count) {
 				blockContainer.firstSequenceID = (blockContainer.firstBlockIndex === firstBlockIndex) ? firstSequenceID : secondSequenceID
 				blockContainer.secondSequenceID = (blockContainer.firstBlockIndex === firstBlockIndex) ? secondSequenceID : firstSequenceID
 				blockContainer.splitPoint = Math.floor((firstBlockIndex + secondBlockIndex) / 2)
+
+				let connectionLine = new ShapeLayer({parent: blockContainer})
+				connectionLine.segments = [new Segment(blockContainer.blocks[blockContainer.splitPoint].position), new Segment(blockContainer.blocks[blockContainer.splitPoint + 1].position)]
+				connectionLine.strokeColor = blockColor
+				connectionLine.strokeWidth = 10
+				blockContainer.connectionLine = connectionLine
 			} else if (phase === ContinuousGesturePhase.Ended || phase === ContinuousGesturePhase.Cancelled) {
 				if (splitDistanceInBlockContainer(blockContainer) < splittingThreshold) {
 					for (let blockIndex = 0; blockIndex < blockContainer.blocks.length; blockIndex++) {
 						blockContainer.blocks[blockIndex].animators.position.target = new Point({x: blockIndex * (blockWidth + lineWidth) + blockWidth / 2.0, y: blockWidth / 2.0})
+						blockContainer.behaviors = [new ActionBehavior({handler: () => {
+							blockContainer.connectionLine.segments = [new Segment(blockContainer.blocks[blockContainer.splitPoint].position), new Segment(blockContainer.blocks[blockContainer.splitPoint + 1].position)]
+							blockContainer.connectionLine.strokeWidth = clip({value: map({fromInterval: [blockWidth, splittingThreshold], toInterval: [10, 0], value: splitDistanceInBlockContainer(blockContainer)}), min: 0, max: 100})
+							blockContainer.connectionLine.alpha = map({fromInterval: [blockWidth, splittingThreshold], toInterval: [0, 1], value: splitDistanceInBlockContainer(blockContainer)})
+							if (blockContainer.connectionLine.alpha <= 0.1) {
+								blockContainer.behaviors = []
+								blockContainer.connectionLine.parent = undefined
+								blockContainer.connectionLine = undefined
+							}
+						}})]
 					}
 					blockContainer.isSplit = false
 				} else {
@@ -139,6 +177,9 @@ function makeBlock(count) {
 				}
 
 				blockContainer.previousSamples = [blockContainer.activeTouchSequences[blockContainer.firstSequenceID].currentSample, blockContainer.activeTouchSequences[blockContainer.secondSequenceID].currentSample]
+
+				blockContainer.connectionLine.segments = [new Segment(blockContainer.blocks[blockContainer.splitPoint].position), new Segment(blockContainer.blocks[blockContainer.splitPoint + 1].position)]
+				blockContainer.connectionLine.strokeWidth = clip({value: map({fromInterval: [blockWidth, splittingThreshold], toInterval: [10, 0], value: splitDistanceInBlockContainer(blockContainer)}), min: 0, max: 100})
 			}
 		}})
 	]
