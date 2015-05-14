@@ -1,3 +1,5 @@
+// scissors icon by Nathan Thomson https://thenounproject.com/term/scissors/2521/
+
 const blockWidth = 80
 const lineWidth = 1.5
 const splittingThreshold = blockWidth * 2
@@ -47,6 +49,8 @@ var draggingPartGesture = new PanGesture({cancelsTouchesInLayer: false, handler:
 				blockContainer.connectionLine = connectionLine
 			}
 		} else if (phase === ContinuousGesturePhase.Changed) {
+			if (!draggingPartGesture.hitPartIndex) { return }
+
 			for (let blockIndex = 0; blockIndex < blockContainer.blocks.length; blockIndex++) {
 				if ((draggingPartGesture.hitPartIndex === 0 && blockIndex <= blockContainer.splitPoint)||
 					(draggingPartGesture.hitPartIndex === 1 && blockIndex > blockContainer.splitPoint)) {
@@ -58,6 +62,7 @@ var draggingPartGesture = new PanGesture({cancelsTouchesInLayer: false, handler:
 			blockContainer.connectionLine.segments = [new Segment(blockContainer.blocks[blockContainer.splitPoint].position), new Segment(blockContainer.blocks[blockContainer.splitPoint + 1].position)]
 			blockContainer.connectionLine.strokeWidth = clip({value: map({fromInterval: [blockWidth, splittingThreshold], toInterval: [10, 0], value: splitDistanceInBlockContainer(blockContainer)}), min: 0, max: 100})
 		} else {
+			if (!draggingPartGesture.hitPartIndex) { return }
 			if (splitDistanceInBlockContainer(blockContainer) < splittingThreshold) {
 				let offset = undefined
 				if (draggingPartGesture.hitPartIndex == 0) {
