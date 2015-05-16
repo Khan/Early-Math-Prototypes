@@ -10,20 +10,32 @@ const sliceHandleRadius = 7
 let blockContainer = makeBlock(8)
 blockContainer.position = Layer.root.position
 
-let scissors = new Layer({imageName: "scissors"})
-scissors.originX = 20
-scissors.originY = Layer.root.height - scissors.height - 30
-scissors.animators.y.springSpeed = 15
-scissors.animators.y.springBounciness = 0
-scissors.touchBeganHandler = () => {
+// Have to put the scissors in a container because touches don't yet work on shapes! Yuuuuuuck.
+let scissorsContainer = new Layer()
+let scissors = new ShapeLayer({parent: scissorsContainer})
+scissors.segments = [
+	new Segment(new Point({x: 25, y: 0})),
+	new Segment(new Point({x: 0, y: 100})),
+	new Segment(new Point({x: 50, y: 100}))
+]
+scissors.strokeColor = undefined
+scissors.fillColor = Color.lightGray
+scissors.origin = Point.zero
+scissorsContainer.originX = 20
+scissorsContainer.originY = Layer.root.height - scissors.height - 30
+scissorsContainer.width = 50
+scissorsContainer.height = 100
+scissorsContainer.animators.y.springSpeed = 15
+scissorsContainer.animators.y.springBounciness = 0
+scissorsContainer.touchBeganHandler = () => {
 	scissors.animators.scale.target = new Point({x: 1.1, y: 1.1})
 }
-scissors.touchMovedHandler = touchSequence => {
-	scissors.position = scissors.position.add(touchSequence.currentSample.globalLocation.subtract(touchSequence.previousSample.globalLocation))
+scissorsContainer.touchMovedHandler = touchSequence => {
+	scissorsContainer.position = scissorsContainer.position.add(touchSequence.currentSample.globalLocation.subtract(touchSequence.previousSample.globalLocation))
 
 	if (blockContainer.isSplit) { return }
 
-	const containerLocation = blockContainer.convertGlobalPointToLocalPoint(new Point({x: scissors.x, y: scissors.originY}))
+	const containerLocation = blockContainer.convertGlobalPointToLocalPoint(new Point({x: scissorsContainer.x, y: scissorsContainer.originY}))
 
 	if (blockContainer.bounds.inset({value: -20}).contains(containerLocation)) {
 		const blockLeftIndex = clip({value: Math.round(containerLocation.x / blockWidth), min: 1, max: blockContainer.blocks.length - 1})
@@ -41,7 +53,7 @@ scissors.touchMovedHandler = touchSequence => {
 		blockContainer.blocks[blockIndex].animators.position.target = new Point({x: blockIndex * (blockWidth + lineWidth) + (blockIndex <= blockContainer.splitPoint ? -splitAmount : splitAmount) + blockWidth / 2.0, y: blockWidth / 2.0})
 	}
 }
-scissors.touchEndedHandler = () => {	
+scissorsContainer.touchEndedHandler = () => {	
 	scissors.animators.scale.target = new Point({x: 1, y: 1})
 
 	if (blockContainer.isSplit) { return }
@@ -53,7 +65,7 @@ scissors.touchEndedHandler = () => {
 	}
 
 	if (didSplit) {
-		scissors.animators.y.target = blockContainer.frameMaxY + 110
+		scissorsContainer.animators.y.target = blockContainer.frameMaxY + 110
 	}
 	blockContainer.isSplit = didSplit
 }
