@@ -1,4 +1,11 @@
-Layer.root.backgroundColor = new Color({hex: "e9f5df"})
+Layer.root.backgroundColor = new Color({hex: "eaeaea"})
+
+var grassLayer = new Layer()
+grassLayer.bounds = Layer.root.bounds
+grassLayer.position = Layer.root.position
+grassLayer.y -= 100
+grassLayer.backgroundColor = new Color({hex: "e9f5df"})
+grassLayer.cornerRadius = 20
 
 var flowerSize = new Size({width: 50, height: 140})
 function makeFlower() {
@@ -27,7 +34,7 @@ function makeFlower() {
 
 
 function makeFlowerPatchForFlowerCount(flowerCount) {
-	var flowerContainer = new Layer()
+	var flowerContainer = new Layer({parent: grassLayer})
 	flowerContainer.width = flowerSize.width * flowerCount
 	flowerContainer.height = flowerSize.height
 	
