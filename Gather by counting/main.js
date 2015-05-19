@@ -1,3 +1,11 @@
+
+//
+// Gather by counting
+//	based on Prototope 1a7f868
+//
+// Tap the flowers to gather some bricks
+
+
 Layer.root.backgroundColor = new Color({hex: "eaeaea"})
 
 var grassLayer = new Layer()
@@ -29,13 +37,27 @@ function makeFlower() {
     leaf.moveAboveSiblingLayer({siblingLayer: stem})
     leaf.x = stem.x
     
+    // leaf.rotationRadians = degreesToRadians(15)
+    
     leaf.beenTapped = false
     leaf.gestures = [
     		new TapGesture({handler: function() {
 	    		if (leaf.beenTapped) { return }
 	    		leaf.beenTapped = true
 	    		
-	    		leaf.image = new Image({name: "tulip-petal-sides-red"})
+	    		var left = new Layer({imageName: "tulip-petal-sides-red", parent: container})
+	    		var right = new Layer({imageName: "tulip-petal-sides-red", parent: container})
+	    		
+	    		// this is a hack to put the left/right leaves behind the centre leaf..we don't have methods to send layers to the back yet
+	    		leaf.parent = undefined
+	    		leaf.parent = container
+	    		
+	    		left.frame = right.frame = leaf.frame
+	    		
+	    		var degrees = 45
+	    		left.animators.rotationRadians.target = degreesToRadians(-degrees)
+	    		right.animators.rotationRadians.target = degreesToRadians(degrees)
+	    		
 	    		brick.showIfNeeded()
 	    		brick.animateInNextBlock()
     		}})
@@ -121,3 +143,6 @@ function makeBrickOfLength(length) {
 	return container
 }
 
+function degreesToRadians(degrees) {
+	return degrees * Math.PI / 180
+}
