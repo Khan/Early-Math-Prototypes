@@ -4,6 +4,7 @@
 //	based on Prototope 1a7f868
 //
 // Tap the flowers to gather some bricks
+// success sound from https://www.freesound.org/people/grunz/sounds/109662/
 
 
 Layer.root.backgroundColor = new Color({hex: "eaeaea"})
@@ -14,6 +15,7 @@ for (var i = 1; i <= 8; i++) {
 }
 
 var flowerSounds = [new Sound({name: "Flower"}), new Sound({name: "Flowers"})]
+var successSound = new Sound({name: "success"})
 
 var grassLayer = new Layer()
 grassLayer.bounds = Layer.root.bounds
@@ -75,7 +77,7 @@ function makeFlower() {
 
 
 function makeFlowerPatchForFlowerCount(flowerCount) {
-	var flowerContainer = new Layer({parent: grassLayer})
+	var flowerContainer = new Layer()
 	flowerContainer.width = flowerSize.width * flowerCount
 	flowerContainer.height = flowerSize.height
 	
@@ -96,6 +98,9 @@ var threePatch = makeFlowerPatchForFlowerCount(3)
 threePatch.moveToCenterOfParentLayer()
 
 
+brick.position = threePatch.position
+brick.moveAboveSiblingLayer({siblingLayer: threePatch, margin: 30})
+
 function makeEmptyBlock() {
 	var rect = new Rect({x: 50, y: 50, width: blockSize, height: blockSize})
 	var block = new ShapeLayer.Rectangle({rectangle: rect, cornerRadius: 8})
@@ -111,7 +116,7 @@ function makeBrickOfLength(length) {
 	if (length < 1) { return }
 	
 	var container = new Layer()
-	container.size = new Size({width: blockSize, height: blockSize * length})
+	container.size = new Size({width: (blockSize + 2) * length, height: blockSize})
 	container.blocks = []
 	
 	var maxX = 0
@@ -138,18 +143,40 @@ function makeBrickOfLength(length) {
 	container.nextBlockIndex = 0
 	container.animateInNextBlock = function() {
 		if (container.nextBlockIndex >= length) { return }
+		
 		var block = container.blocks[container.nextBlockIndex]
 		block.fillColor = block.strokeColor
 		block.dashLength = undefined
+		
+		
 		block.animators.scale.target = new Point({x: 1, y: 1})
 		var velocity = 4
 		block.animators.scale.velocity = new Point({x: velocity, y: velocity})
+		
 		container.nextBlockIndex++
 		
+		
 		var index = container.nextBlockIndex - 1
+		var allFlowersCompleted = index + 1 == length
+		
 		numbersToSounds[index].play()
+		
+		// This should really happen in the "afterDuration" call below, but it seems I can use an animator in that?
+		if (allFlowersCompleted) {
+			container.animators.scale.target = new Point({x: 1, y: 1})
+			container.animators.scale.velocity = new Point({x: velocity * 4, y: velocity * 4})
+			
+			container.animators.position.target = new Point({x: 100, y: 720})
+		}
+		
 		afterDuration(0.5, function() {
 			flowerSounds[index + 1 == 1 ? 0 : 1].play()
+			if (allFlowersCompleted) {
+				// we've shown all the blocks, play success!
+				afterDuration(0.5, function() {
+					successSound.play()
+				})
+			}
 		})
 	}
 	
