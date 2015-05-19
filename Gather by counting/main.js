@@ -8,6 +8,11 @@
 
 Layer.root.backgroundColor = new Color({hex: "eaeaea"})
 
+var numbersToSounds = []
+for (var i = 1; i <= 8; i++) {
+	numbersToSounds.push(new Sound({name: i.toString()}))
+}
+
 var grassLayer = new Layer()
 grassLayer.bounds = Layer.root.bounds
 grassLayer.position = Layer.root.position
@@ -138,6 +143,8 @@ function makeBrickOfLength(length) {
 		var velocity = 4
 		block.animators.scale.velocity = new Point({x: velocity, y: velocity})
 		container.nextBlockIndex++
+		
+		numbersToSounds[container.nextBlockIndex - 1].play()
 	}
 	
 	return container
