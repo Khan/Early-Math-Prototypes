@@ -7,6 +7,12 @@ grassLayer.y -= 100
 grassLayer.backgroundColor = new Color({hex: "e9f5df"})
 grassLayer.cornerRadius = 20
 
+
+var blockSize = 50 // this constant has to be here because Javascript is a terrible language
+var brick = makeBrickOfLength(3)
+brick.alpha = 0
+brick.originY = 692
+
 var flowerSize = new Size({width: 50, height: 140})
 function makeFlower() {
     var container = new Layer()
@@ -23,9 +29,15 @@ function makeFlower() {
     leaf.moveAboveSiblingLayer({siblingLayer: stem})
     leaf.x = stem.x
     
+    leaf.beenTapped = false
     leaf.gestures = [
     		new TapGesture({handler: function() {
+	    		if (leaf.beenTapped) { return }
+	    		leaf.beenTapped = true
+	    		
 	    		leaf.image = new Image({name: "tulip-petal-sides-red"})
+	    		brick.showIfNeeded()
+	    		brick.animateInNextBlock()
     		}})
     ]
     
@@ -53,3 +65,59 @@ function makeFlowerPatchForFlowerCount(flowerCount) {
 
 var threePatch = makeFlowerPatchForFlowerCount(3)
 threePatch.moveToCenterOfParentLayer()
+
+
+function makeEmptyBlock() {
+	var rect = new Rect({x: 50, y: 50, width: blockSize, height: blockSize})
+	var block = new ShapeLayer.Rectangle({rectangle: rect, cornerRadius: 8})
+	block.fillColor = undefined
+	block.strokeColor = new Color({hex: "ca3132"})
+	block.strokeWidth = 2
+	block.dashLength = 5
+	
+	return block
+}
+
+function makeBrickOfLength(length) {
+	if (length < 1) { return }
+	
+	var container = new Layer()
+	container.size = new Size({width: blockSize, height: blockSize * length})
+	container.blocks = []
+	
+	var maxX = 0
+	for (var index = 0; index < length; index++) {
+		var block = makeEmptyBlock()
+		block.parent = container
+		block.originX = maxX + 2
+		block.originY = 0
+		
+		maxX = block.frameMaxX
+		
+		container.blocks.push(block)
+	}
+	
+	
+	container.showIfNeeded = function() {
+		if (container.alpha == 1) { return }
+		
+		container.alpha = 1
+		container.scale = 0.01
+		container.animators.scale.target = new Point({x: 1, y: 1})
+	}
+	
+	container.nextBlockIndex = 0
+	container.animateInNextBlock = function() {
+		if (container.nextBlockIndex >= length) { return }
+		var block = container.blocks[container.nextBlockIndex]
+		block.fillColor = block.strokeColor
+		block.dashLength = undefined
+		block.animators.scale.target = new Point({x: 1, y: 1})
+		var velocity = 4
+		block.animators.scale.velocity = new Point({x: velocity, y: velocity})
+		container.nextBlockIndex++
+	}
+	
+	return container
+}
+
