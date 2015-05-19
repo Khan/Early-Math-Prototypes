@@ -9,6 +9,12 @@ polygon.lineCapStyle = LineCapStyle.Round
 polygon.lineJoinStyle = LineJoinStyle.Round
 polygon.strokeColor = Color.orange
 polygon.fillColor = new Color({red: 1, green: 0.5, blue: 0, alpha: 0.2})
+polygon.segments = polygonTargetSegments(false)
+
+polygon.leftHandle = makeHandle(polygon)
+polygon.leftHandle.position = polygon.segments[0].point
+polygon.rightHandle = makeHandle(polygon)
+polygon.rightHandle.position = polygon.segments[3].point
 
 polygon.behaviors = [
 	new ActionBehavior({handler: () => {
@@ -17,6 +23,8 @@ polygon.behaviors = [
 			for (let segmentIndex = 0; segmentIndex < 4; segmentIndex++) {
 				segments[segmentIndex] = new Segment(polygon.segments[segmentIndex].point.add(polygon.targetSegments[segmentIndex].point.subtract(polygon.segments[segmentIndex].point).multiply(0.2)))
 			}
+			polygon.leftHandle.position = polygon.leftHandle.position.add(polygon.targetSegments[0].point.subtract(polygon.segments[0].point).multiply(0.2))
+			polygon.rightHandle.position = polygon.rightHandle.position.add(polygon.targetSegments[3].point.subtract(polygon.segments[3].point).multiply(0.2))
 			polygon.segments = segments
 		}
 	}})
@@ -31,7 +39,15 @@ edge.width = shapeSize
 edge.height = shapeSize
 edge.strokeColor = polygon.strokeColor
 edge.strokeWidth = polygon.strokeWidth
+edge.lineCapStyle = LineCapStyle.Round
 edge.fillColor = undefined
+
+edge.leftHandle = makeHandle(edge)
+edge.leftHandle.y += shapeSize / 2.0
+
+edge.rightHandle = makeHandle(edge)
+edge.rightHandle.x += shapeSize
+edge.rightHandle.y = edge.leftHandle.y
 
 edge.animators.position.springSpeed = 20
 edge.animators.position.springBounciness = 0
@@ -40,11 +56,13 @@ edge.position = Layer.root.position
 edge.y += 300
 edge.x += 300
 
-polygon.segments = polygonTargetSegments(false)
-
 let hitLayer = undefined
 Layer.root.touchBeganHandler = sequence => {
 	hitLayer = edge.frame.inset({horizontal: 0, vertical: shapeSize / 4.0}).contains(sequence.currentSample.globalLocation) ? edge : polygon
+	if (hitLayer === edge) {
+		edge.leftHandle.animators.scale.target = new Point({x: 1, y: 1})
+		edge.rightHandle.animators.scale.target = new Point({x: 1, y: 1})
+	}
 }
 
 Layer.root.touchMovedHandler = sequence => {
@@ -52,7 +70,15 @@ Layer.root.touchMovedHandler = sequence => {
 	if (polygon.caughtEdge && hitLayer === polygon) {
 		edge.position = edge.position.add(sequence.currentSample.globalLocation.subtract(sequence.previousSample.globalLocation))	
 	}
-	polygon.targetSegments = polygonTargetSegments(polygonIsOpenForEdgePosition(edge.position))
+
+	const polygonIsOpen = polygonIsOpenForEdgePosition(edge.position)
+	polygon.targetSegments = polygonTargetSegments(polygonIsOpen)
+
+	if (hitLayer === edge) {
+		const scale = polygonIsOpen ? new Point({x: 1, y: 1}) : new Point({x: 0.001, y: 0.001})
+		polygon.leftHandle.animators.scale.target = scale
+		polygon.rightHandle.animators.scale.target = scale
+	}
 }
 
 Layer.root.touchEndedHandler = sequence => {
@@ -61,6 +87,13 @@ Layer.root.touchEndedHandler = sequence => {
 		polygon.caughtEdge = true
 	} else {
 		polygon.caughtEdge = false
+	}
+
+	if (hitLayer === edge) {
+		edge.leftHandle.animators.scale.target = new Point({x: 0.001, y: 0.001})
+		edge.rightHandle.animators.scale.target = new Point({x: 0.001, y: 0.001})
+		polygon.leftHandle.animators.scale.target = new Point({x: 0.001, y: 0.001})
+		polygon.rightHandle.animators.scale.target = new Point({x: 0.001, y: 0.001})
 	}
 }
 
@@ -84,4 +117,14 @@ function polygonTargetSegments(isOpen) {
 			new Segment(new Point({x: 0, y: shapeSize})),
 		]
 	}
+}
+
+function makeHandle(parent) {
+	const handle = new ShapeLayer.Circle({parent: parent, center: Point.zero, radius: 10})
+	handle.strokeColor = undefined
+	handle.fillColor = Color.orange
+	handle.animators.scale.springSpeed = 20
+	handle.animators.scale.springBounciness = 0
+	handle.scale = 0.001	
+	return handle
 }
