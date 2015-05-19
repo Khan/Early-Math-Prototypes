@@ -13,6 +13,8 @@ for (var i = 1; i <= 8; i++) {
 	numbersToSounds.push(new Sound({name: i.toString()}))
 }
 
+var flowerSounds = [new Sound({name: "Flower"}), new Sound({name: "Flowers"})]
+
 var grassLayer = new Layer()
 grassLayer.bounds = Layer.root.bounds
 grassLayer.position = Layer.root.position
@@ -144,7 +146,11 @@ function makeBrickOfLength(length) {
 		block.animators.scale.velocity = new Point({x: velocity, y: velocity})
 		container.nextBlockIndex++
 		
-		numbersToSounds[container.nextBlockIndex - 1].play()
+		var index = container.nextBlockIndex - 1
+		numbersToSounds[index].play()
+		afterDuration(0.5, function() {
+			flowerSounds[index + 1 == 1 ? 0 : 1].play()
+		})
 	}
 	
 	return container
