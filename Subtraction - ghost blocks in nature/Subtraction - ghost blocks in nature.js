@@ -79,7 +79,7 @@ function makeBlock(count) {
 		if (slot !== undefined) {
 			const position = new Point({
 				x: xPositionForSlotIndex(slot) + blockWidth / 2.0 + (slot + 1) * lineWidth,
-				y: 280 + blockContainer.height / 2.0 - 1
+				y: 280 + Math.round((blockContainer.originY - 280) / (blockWidth + lineWidth)) * (blockWidth + lineWidth) + blockContainer.height / 2.0
 			})
 			blockContainer.animators.position.target = position
 
