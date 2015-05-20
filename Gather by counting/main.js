@@ -26,9 +26,15 @@ grassLayer.cornerRadius = 20
 
 
 var blockSize = 50 // this constant has to be here because Javascript is a terrible language
-var brick = makeBrickOfLength(3)
+var shadowBrick = makeBrick({length: 3, isShadow: true})
+shadowBrick.position = new Point({x: 100, y: 720})
+shadowBrick.alpha = 0
+
+var brick = makeBrick({length: 3, isShadow: false})
 brick.alpha = 0
 brick.originY = 692
+
+
 
 var flowerSize = new Size({width: 50, height: 140})
 function makeFlower() {
@@ -69,6 +75,11 @@ function makeFlower() {
 	    		
 	    		brick.showIfNeeded()
 	    		brick.animateInNextBlock()
+	    		if (brick.completed()) {
+		    		// show the shadow brick
+		    		shadowBrick.animators.alpha.target = 1
+		    		brick.becomeDraggable()
+	    		}
     		}})
     ]
     
@@ -101,18 +112,25 @@ threePatch.moveToCenterOfParentLayer()
 brick.position = threePatch.position
 brick.moveAboveSiblingLayer({siblingLayer: threePatch, margin: 30})
 
-function makeEmptyBlock() {
+function makeEmptyBlock(args) {
+	var color = args.color
+	var isShadow = args.isShadow
+	
 	var rect = new Rect({x: 50, y: 50, width: blockSize, height: blockSize})
 	var block = new ShapeLayer.Rectangle({rectangle: rect, cornerRadius: 8})
-	block.fillColor = undefined
-	block.strokeColor = new Color({hex: "ca3132"})
+	
+	block.fillColor = isShadow ? new Color({hex: color}) : undefined
+	block.strokeColor = new Color({hex: color})
 	block.strokeWidth = 2
-	block.dashLength = 5
+	block.dashLength = isShadow ? undefined : 5
 	
 	return block
 }
 
-function makeBrickOfLength(length) {
+function makeBrick(args) {
+	var length = args.length
+	var isShadow = args.isShadow
+	
 	if (length < 1) { return }
 	
 	var container = new Layer()
@@ -121,7 +139,8 @@ function makeBrickOfLength(length) {
 	
 	var maxX = 0
 	for (var index = 0; index < length; index++) {
-		var block = makeEmptyBlock()
+		var color = isShadow ? "d5d5d5" : "ca3132"
+		var block = makeEmptyBlock({color: color, isShadow: isShadow})
 		block.parent = container
 		block.originX = maxX + 2
 		block.originY = 0
@@ -139,6 +158,8 @@ function makeBrickOfLength(length) {
 		container.scale = 0.01
 		container.animators.scale.target = new Point({x: 1, y: 1})
 	}
+	
+	container.completed = function() { return container.nextBlockIndex == length }
 	
 	container.nextBlockIndex = 0
 	container.animateInNextBlock = function() {
@@ -166,7 +187,7 @@ function makeBrickOfLength(length) {
 			container.animators.scale.target = new Point({x: 1, y: 1})
 			container.animators.scale.velocity = new Point({x: velocity * 4, y: velocity * 4})
 			
-			container.animators.position.target = new Point({x: 100, y: 720})
+			// container.animators.position.target = new Point({x: 100, y: 720})
 		}
 		
 		afterDuration(0.5, function() {
@@ -178,6 +199,21 @@ function makeBrickOfLength(length) {
 				})
 			}
 		})
+	}
+	
+	
+	container.becomeDraggable = function() {
+		container.touchMovedHandler = function(touchSequence) {
+			container.position = touchSequence.currentSample.globalLocation
+		}
+		
+		container.touchEndedHandler = function(touchSequence) {
+			// see where the touch is, and if it's close to the shadow brick, then accept the drop
+			if (container.frame.intersectsRect(shadowBrick.frame)) {
+				container.animators.frame.target = shadowBrick.frame
+				container.animators.frame.velocity
+			}
+		}
 	}
 	
 	return container
