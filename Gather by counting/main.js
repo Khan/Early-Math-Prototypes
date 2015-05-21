@@ -9,6 +9,9 @@
 
 Layer.root.backgroundColor = new Color({hex: "eaeaea"})
 
+//-------------------------
+// Sounds
+//-------------------------
 var numbersToSounds = []
 for (var i = 1; i <= 8; i++) {
 	numbersToSounds.push(new Sound({name: i.toString()}))
@@ -16,6 +19,29 @@ for (var i = 1; i <= 8; i++) {
 
 var flowerSounds = [new Sound({name: "Flower"}), new Sound({name: "Flowers"})]
 var successSound = new Sound({name: "success"})
+
+
+//------------------------
+// Colours
+//------------------------
+
+var colors = [
+	{
+		name: "gold",
+		hex: "d2933d"
+	},{
+		name: "purple",
+		hex: "644172"
+	},{
+		name: "red",
+		hex: "ca3132"
+	}
+]
+
+
+//-----------------------
+// Layers
+//-----------------------
 
 var grassLayer = new Layer()
 grassLayer.bounds = Layer.root.bounds
@@ -26,18 +52,17 @@ grassLayer.cornerRadius = 20
 
 
 var blockSize = 50 // this constant has to be here because Javascript is a terrible language
-var shadowBrick = makeBrick({length: 3, isShadow: true})
-shadowBrick.position = new Point({x: 100, y: 720})
-shadowBrick.alpha = 0
-
-var brick = makeBrick({length: 3, isShadow: false})
-brick.alpha = 0
-brick.originY = 692
-
 
 
 var flowerSize = new Size({width: 50, height: 140})
-function makeFlower() {
+function makeFlower(args) {
+	
+	
+	var name = args.color.name
+	var brick = args.brick
+	var shadowBrick = args.shadowBrick
+	
+	
     var container = new Layer()
     container.size = flowerSize
     
@@ -47,12 +72,12 @@ function makeFlower() {
     stem.backgroundColor = new Color({hex: "66a54a"})
     stem.moveToBottomSideOfParentLayer()
     stem.moveToHorizontalCenterOfParentLayer()
-    
-    var leaf = new Layer({imageName: "tulip-petal-front-red", parent: container})
+
+	
+    var leaf = new Layer({imageName: "tulip-petal-front-" + name, parent: container})
     leaf.moveAboveSiblingLayer({siblingLayer: stem})
     leaf.x = stem.x
     
-    // leaf.rotationRadians = degreesToRadians(15)
     
     leaf.beenTapped = false
     leaf.gestures = [
@@ -60,12 +85,10 @@ function makeFlower() {
 	    		if (leaf.beenTapped) { return }
 	    		leaf.beenTapped = true
 	    		
-	    		var left = new Layer({imageName: "tulip-petal-sides-red", parent: container})
-	    		var right = new Layer({imageName: "tulip-petal-sides-red", parent: container})
+	    		var left = new Layer({imageName: "tulip-petal-sides-" + name, parent: container})
+	    		var right = new Layer({imageName: "tulip-petal-sides-" + name, parent: container})
 	    		
-	    		// this is a hack to put the left/right leaves behind the centre leaf..we don't have methods to send layers to the back yet
-	    		leaf.parent = undefined
-	    		leaf.parent = container
+	    		bringLayerToFront(leaf)
 	    		
 	    		left.frame = right.frame = leaf.frame
 	    		
@@ -88,13 +111,26 @@ function makeFlower() {
 
 
 function makeFlowerPatchForFlowerCount(flowerCount) {
+	
+	var shadowBrick = makeBrick({length: flowerCount, isShadow: true})
+	shadowBrick.position = new Point({x: 200 * flowerCount, y: 720})
+	shadowBrick.alpha = 0
+	
+	var brick = makeBrick({length: flowerCount, isShadow: false})
+	brick.alpha = 0
+	brick.originY = 692
+	brick.shadowBrick = shadowBrick
+	
+	
+	
 	var flowerContainer = new Layer()
 	flowerContainer.width = flowerSize.width * flowerCount
 	flowerContainer.height = flowerSize.height
 	
 	var maxX = 0
 	for (var index = 0; index < flowerCount; index++) {
-		var flower = makeFlower()
+		
+		var flower = makeFlower({color: colors[flowerCount - 1], brick: brick, shadowBrick: shadowBrick})
 		flower.parent = flowerContainer
 		
 		flower.originX = maxX
@@ -102,15 +138,32 @@ function makeFlowerPatchForFlowerCount(flowerCount) {
 		maxX = flower.frameMaxX
 	}
 	
+	bringLayerToFront(brick)
+	
+	flowerContainer.repositionBrick = function() {
+		brick.position = flowerContainer.position
+		brick.moveAboveSiblingLayer({siblingLayer: flowerContainer, margin: 30})
+	}
+	
 	return flowerContainer
 }
 
+
+var twoPatch = makeFlowerPatchForFlowerCount(2)
+twoPatch.moveToCenterOfParentLayer()
+
+var onePatch = makeFlowerPatchForFlowerCount(1)
+onePatch.moveToCenterOfParentLayer()
+onePatch.moveToLeftOfSiblingLayer({siblingLayer: twoPatch, margin: 100})
+
 var threePatch = makeFlowerPatchForFlowerCount(3)
 threePatch.moveToCenterOfParentLayer()
+threePatch.moveToRightOfSiblingLayer({siblingLayer: twoPatch, margin: 100})
 
+onePatch.repositionBrick()
+twoPatch.repositionBrick()
+threePatch.repositionBrick()
 
-brick.position = threePatch.position
-brick.moveAboveSiblingLayer({siblingLayer: threePatch, margin: 30})
 
 function makeEmptyBlock(args) {
 	var color = args.color
@@ -139,7 +192,7 @@ function makeBrick(args) {
 	
 	var maxX = 0
 	for (var index = 0; index < length; index++) {
-		var color = isShadow ? "d5d5d5" : "ca3132"
+		var color = isShadow ? "d5d5d5" : colors[length - 1].hex
 		var block = makeEmptyBlock({color: color, isShadow: isShadow})
 		block.parent = container
 		block.originX = maxX + 2
@@ -209,8 +262,8 @@ function makeBrick(args) {
 		
 		container.touchEndedHandler = function(touchSequence) {
 			// see where the touch is, and if it's close to the shadow brick, then accept the drop
-			if (container.frame.intersectsRect(shadowBrick.frame)) {
-				container.animators.frame.target = shadowBrick.frame
+			if (container.frame.intersectsRect(container.shadowBrick.frame)) {
+				container.animators.frame.target = container.shadowBrick.frame
 				container.animators.frame.velocity
 			}
 		}
@@ -219,6 +272,20 @@ function makeBrick(args) {
 	return container
 }
 
+
+//------------------
+// Utilities
+//------------------
+
+
 function degreesToRadians(degrees) {
 	return degrees * Math.PI / 180
+}
+
+
+// Hack to bring a layer to the front...this should be a part of prototope!
+function bringLayerToFront(layer) {
+	var parent = layer.parent
+	layer.parent = undefined
+	layer.parent = parent
 }
