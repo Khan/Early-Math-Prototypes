@@ -1,9 +1,9 @@
 var mixer = new Layer()
 
 var color = {
-	red: 0.2,
-	green: 0.2,
-	blue: 0.2
+	red: 0.,
+	green: 0.,
+	blue: 0.
 }
 
 
@@ -26,26 +26,53 @@ function makeSquare(bgColor, colorName) {
 	layer.size = new Size({width: size, height: size})
 	layer.backgroundColor = new Color({hex: "EEEEEE"})
 	layer.cornerRadius = 8
-
-	var innerLayer = new Layer({parent: layer})
-	innerLayer.backgroundColor = bgColor
-	innerLayer.size = new Size({width: 50, height: 50})
-	innerLayer.cornerRadius = 4
-	innerLayer.moveToCenterOfParentLayer()
-	
-	layer.gestures = [new TapGesture({handler: function() {
-		layer.addMoreColor()
-	}})]
+	layer.border = new Border({color: bgColor, width: 8})
 
 
-	layer.addMoreColor = function() {		
-		color[colorName] += 0.1
+	layer.refreshColor = function() {		
+		color[colorName] = layer.totalColor()
 		mixer.updateBackgroundColor()
-		innerLayer.animators.scale.target = new Point({x: 1, y: 1})
-		innerLayer.animators.scale.velocity = new Point({x: 4, y: 4})
 	}
 
-	layer.innerLayer = innerLayer
+	layer.animateGulp = function() {
+		layer.animators.scale.target = new Point({x: 1, y: 1})
+		layer.animators.scale.velocity = new Point({x: 4, y: 4})
+	}
+
+	layer.bricks = []
+
+
+	/** Adds a brick to the layer's data and refreshes the colour. */
+	layer.addBrick = function(brick) {
+		if (layer.containsBrick(brick)) { return }
+
+ 		layer.bricks.push(brick)
+		layer.refreshColor()
+		layer.animateGulp()
+	}
+
+
+	/** Removes the given brick from the layer's data and updates the colour. */
+	layer.removeBrick = function(brick) {
+		var indexOfBrick = layer.bricks.indexOf(brick)
+		layer.bricks.splice(indexOfBrick, 1) // so obvious that this means "remove the element at the given index." wtf is this shit, javascript??
+		layer.refreshColor()
+	}
+
+
+	/** Returns if the layer contains the given brick. */
+	layer.containsBrick = function(brick) { return layer.bricks.indexOf(brick) >= 0 }
+
+
+	layer.totalColor = function() {
+		var total = 0
+		for (var index = 0; index < layer.bricks.length; index++) {
+			total += layer.bricks[index].length()
+		}
+
+		return total / 10.0
+	}
+
 	
 	return layer
 }
@@ -70,9 +97,22 @@ mixer.moveToCenterOfParentLayer()
 mixer.updateBackgroundColor()
 
 var blockSize = 25
-var redBrick = makeBrick({length: 3, color: colorConstants.red, target: red})
-var greenBrick = makeBrick({length: 3, color: colorConstants.green, target: green})
-var blueBrick = makeBrick({length: 3, color: colorConstants.blue, target: blue})
+
+for (var index = 0; index < 5; index++) {
+
+	var redBrick = makeBrick({length: index + 1, color: colorConstants.red, target: red})
+	var greenBrick = makeBrick({length: index + 1, color: colorConstants.green, target: green})
+	var blueBrick = makeBrick({length: index + 1, color: colorConstants.blue, target: blue})
+
+	redBrick.originX = 100
+	greenBrick.originX = 300
+	blueBrick.originX = 500
+
+	var originY = 600 + index * (blockSize + 10)
+	redBrick.originY = originY
+	greenBrick.originY = originY
+	blueBrick.originY = originY
+}
 
 //-------------------------------------------------
 // Bricks
@@ -116,6 +156,9 @@ function makeBrick(args) {
 	}
 
 
+	container.length = function() { return container.blocks.length }
+
+
 	container.showIfNeeded = function() {
 		if (container.alpha == 1) { return }
 
@@ -129,8 +172,10 @@ function makeBrick(args) {
 	container.becomeDraggable = function() {
 
 		var initialPositionInContainer = new Point()
+		var startedInContainer = false
 		container.touchBeganHandler = function(touchSequence) {
 			initialPositionInContainer = touchSequence.currentSample.locationInLayer(container)
+			startedInContainer = target.containsBrick(container)
 		}
 	
 		container.touchMovedHandler = function(touchSequence) {
@@ -140,12 +185,21 @@ function makeBrick(args) {
 
 		container.touchEndedHandler = function(touchSequence) {
 			if (target.frame.contains(touchSequence.currentSample.globalLocation)) {
-				target.addMoreColor()
-				container.animators.scale.target = new Point({x: 0.01, y: 0.01})
-				container.animators.scale.velocity = new Point({x: 5, y: 5})
-				container.animators.scale.springBounciness = 2
+				target.addBrick(container)
 
-				container.animators.position.target = target.convertLocalPointToGlobalPoint(target.innerLayer.position)
+				// in this code I'm trying to get it to animate itself fully into the container..not working yet
+				// if (!target.frame.containsRect(container.frame)) {
+				// 	var destination = container.frame
+				// 	if (destination.origin.x < target.frame.origin.x) {
+				// 		destination.x = target.frame.origin.x
+				// 	} else if (destination.maxX > target.frame.maxX) {
+				// 		destination.x = target.frame.maxX - destination.size.width
+				// 	}
+
+				// 	container.frame = destination
+				// }
+			} else if (startedInContainer) {
+				target.removeBrick(container)
 			}
 		}
 	}
