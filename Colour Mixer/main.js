@@ -6,17 +6,25 @@ var color = {
 	blue: 0.
 }
 
+function currentColor() {
+	return new Color({red: color.red, green: color.green, blue: color.blue})
+}
+
 
 var colorConstants = {
 	red: new Color({hex: "e65b4c"}),
-	green: Color.green,
-	blue: Color.blue
+	green: new Color({hex: "83c066"}),
+	blue: new Color({hex: "29abca"}),
+	grey: new Color({hex: "EEEEEE"})
 }
 
 
 mixer.updateBackgroundColor = function() {
-	mixer.backgroundColor = new Color({red: color.red, green: color.green, blue: color.blue})
+	mixer.backgroundColor = colorConstants.grey
+	mixer.border = new Border({color: new Color({hex: "555555"}), width: 8})
+	// mixer.backgroundColor = new Color({red: color.red, green: color.green, blue: color.blue})
 }
+
 
 
 function makeSquare(bgColor, colorName) {
@@ -24,14 +32,13 @@ function makeSquare(bgColor, colorName) {
 	
 	var size = 150
 	layer.size = new Size({width: size, height: size})
-	layer.backgroundColor = new Color({hex: "EEEEEE"})
+	layer.backgroundColor = colorConstants.grey
 	layer.cornerRadius = 8
 	layer.border = new Border({color: bgColor, width: 8})
 
 
 	layer.refreshColor = function() {		
 		color[colorName] = layer.totalColor()
-		mixer.updateBackgroundColor()
 	}
 
 	layer.animateGulp = function() {
@@ -60,20 +67,110 @@ function makeSquare(bgColor, colorName) {
 	}
 
 
+	layer.removeAllBricks = function() {
+		layer.bricks = []
+		layer.refreshColor()
+	}
+
+
 	/** Returns if the layer contains the given brick. */
 	layer.containsBrick = function(brick) { return layer.bricks.indexOf(brick) >= 0 }
 
-
-	layer.totalColor = function() {
+	layer.totalCount = function() {
 		var total = 0
 		for (var index = 0; index < layer.bricks.length; index++) {
 			total += layer.bricks[index].length()
 		}
 
-		return total / 10.0
+		return total
 	}
 
+	layer.totalColor = function() {
+		return layer.totalCount() / 10.0
+	}
+
+
+	layer.rotateBricks = function () {
+		for (var index = 0; index < layer.bricks.length; index++) {
+			var brick = layer.bricks[index]
+			brick.animators.rotationRadians.target = Math.PI / 2.0
+		}
+	}
+
+	layer.moveToMixer = function () {
+		for (var index = 0; index < layer.bricks.length; index++) {
+			var brick = layer.bricks[index]
+			brick.animators.position.target = new Point({x: layer.x, y: mixer.y})
+			brick.animators.alpha.target = 0
+			brick.animators.scale.target = new Point({x: 0.01, y: 0.01})
+		}
+	}
+
+
 	
+	return layer
+}
+
+function makePipe(colorName) {
+	var layer = new Layer({imageName: colorName})
+	return layer
+}
+
+
+function makeGrinder(args) {
+	var layer = new Layer({imageName: "lever"})
+
+	layer.touchEndedHandler = function(touchSequence) {
+		new Sound({name: "beep-boop"}).play()
+		rotateColors()
+		afterDuration(0.25, function() {
+			moveColors()
+		})
+		afterDuration(1.50, function() {
+			dripColors()
+		})
+	}
+
+
+	function rotateColors() {
+		red.rotateBricks()
+		green.rotateBricks()
+		blue.rotateBricks()
+	}
+
+
+	function moveColors() {
+		red.moveToMixer()
+		green.moveToMixer()
+		blue.moveToMixer()
+	}
+
+	function dripColors() {
+		var bgColor = currentColor()
+		var totalCount = red.totalCount() + green.totalCount() + blue.totalCount()
+		var totalDripDuration = 2 // seconds
+		var timeIntervalBetweenDrips = totalDripDuration / totalCount
+
+
+		for (var counter = 0; counter < totalCount; counter++) {
+			afterDuration(counter * timeIntervalBetweenDrips, function() {
+				var drip = new Layer()
+				var size = 24
+				drip.size = new Size({width: size, height: size})
+				drip.cornerRadius = drip.height / 2.0
+				drip.backgroundColor = bgColor
+				drip.scale = 0.01
+				drip.position = new Point({x: args.tap.frameMaxX, y: args.tap.frameMaxY})
+
+				drip.animators.scale.target = new Point({x: 1, y: 1})
+				drip.animators.position.target = new Point({x: args.bowl.x, y: args.bowl.y + 20})
+			})
+		}
+		red.removeAllBricks()
+		green.removeAllBricks()
+		blue.removeAllBricks()
+	}
+
 	return layer
 }
 
@@ -96,6 +193,38 @@ mixer.cornerRadius = 8
 mixer.moveToCenterOfParentLayer()
 mixer.updateBackgroundColor()
 
+var redPipe = makePipe("red")
+var greenPipe = makePipe("green")
+var bluePipe = makePipe("blue")
+
+redPipe.x = red.x
+greenPipe.x = green.x
+bluePipe.x = blue.x
+
+redPipe.moveBelowSiblingLayer({siblingLayer: red, margin: -8})
+greenPipe.moveBelowSiblingLayer({siblingLayer: green, margin: -8})
+bluePipe.moveBelowSiblingLayer({siblingLayer: blue, margin: -8})
+
+var tap = new Layer({imageName: "tap"})
+tap.moveToCenterOfParentLayer()
+tap.moveToRightOfSiblingLayer({siblingLayer: mixer, margin: -1})
+
+var bowl = new Layer({imageName: "bowl"})
+bowl.moveBelowSiblingLayer({siblingLayer: mixer, margin: 50})
+bowl.moveToRightOfSiblingLayer({siblingLayer: mixer, margin: -50})
+
+var grinder = makeGrinder({tap: tap, bowl})
+grinder.moveToCenterOfParentLayer()
+grinder.moveToLeftOfSiblingLayer({siblingLayer: mixer, margin: -8})
+
+
+var toolboxLayer = new Layer()
+toolboxLayer.size = new Size({width: Layer.root.width, height: Layer.root.height - 580})
+toolboxLayer.originX = 0
+toolboxLayer.originY = 590
+toolboxLayer.backgroundColor = colorConstants.grey
+toolboxLayer.cornerRadius = 8
+
 var blockSize = 25
 
 for (var index = 0; index < 5; index++) {
@@ -104,15 +233,17 @@ for (var index = 0; index < 5; index++) {
 	var greenBrick = makeBrick({length: index + 1, color: colorConstants.green, target: green})
 	var blueBrick = makeBrick({length: index + 1, color: colorConstants.blue, target: blue})
 
-	redBrick.originX = 100
-	greenBrick.originX = 300
-	blueBrick.originX = 500
+	redBrick.x = red.x
+	greenBrick.x = green.x
+	blueBrick.x = blue.x
 
 	var originY = 600 + index * (blockSize + 10)
 	redBrick.originY = originY
 	greenBrick.originY = originY
 	blueBrick.originY = originY
 }
+
+
 
 //-------------------------------------------------
 // Bricks
@@ -186,18 +317,6 @@ function makeBrick(args) {
 		container.touchEndedHandler = function(touchSequence) {
 			if (target.frame.contains(touchSequence.currentSample.globalLocation)) {
 				target.addBrick(container)
-
-				// in this code I'm trying to get it to animate itself fully into the container..not working yet
-				// if (!target.frame.containsRect(container.frame)) {
-				// 	var destination = container.frame
-				// 	if (destination.origin.x < target.frame.origin.x) {
-				// 		destination.x = target.frame.origin.x
-				// 	} else if (destination.maxX > target.frame.maxX) {
-				// 		destination.x = target.frame.maxX - destination.size.width
-				// 	}
-
-				// 	container.frame = destination
-				// }
 			} else if (startedInContainer) {
 				target.removeBrick(container)
 			}
@@ -222,4 +341,9 @@ function bringLayerToFront(layer) {
 	var parent = layer.parent
 	layer.parent = undefined
 	layer.parent = parent
+}
+
+
+function randomIntBetween(min, max) {
+	return Math.floor(Math.random() * (max - min + 1) + min)
 }
