@@ -20,17 +20,18 @@
 
 	You can optionally provide a dragDidBeginHandler, dragDidMoveHandler, and/or a dragDidEndHandler to get a callback on those events to do whatever you please. For example, you might want to check if the brick was dropped in a certain location.
 */
-function makeBrick(args) {
+function Brick(args) {
 	var length = args.length
 	var color = args.color
 	var size = args.size ? args.size : 50
 	var cornerRadius = args.cornerRadius ? args.cornerRadius : 8
 
+	// It doesn't really make sense to make a brick of 0 blocks, does it?
 	if (length < 1) { return }
 
 	var container = new Layer()
 	container.size = new Size({width: (size + 2) * length, height: size})
-	container.blocks = []
+	var blocks = []
 
 	var maxX = 0
 	for (var index = 0; index < length; index++) {
@@ -43,60 +44,57 @@ function makeBrick(args) {
 
 		maxX = block.frameMaxX
 
-		container.blocks.push(block)
+		blocks.push(block)
+	}
+
+	// Privately, make a block
+	function makeBlock(args) {
+		var color = args.color
+		var size = args.size
+		var cornerRadius = args.cornerRadius
+
+		var rect = new Rect({x: 50, y: 50, width: size, height: size})
+		var block = new Layer()
+		block.frame = rect
+		block.cornerRadius = cornerRadius
+
+		block.backgroundColor = color
+
+
+		return block
 	}
 
 
-	container.length = function() { return container.blocks.length }
-
+	/** Gets the number of blocks in this brick. */
+	this.length = function() { return blocks.length }
 
 	container.becomeDraggable = function() {
 
 		var initialPositionInContainer = new Point()
 		container.touchBeganHandler = function(touchSequence) {
 			initialPositionInContainer = touchSequence.currentSample.locationInLayer(container)
-			bringLayerToFront(container)
-
-			if (container.dragDidBeginHandler) {
-				container.dragDidBeginHandler()
+			if (this.dragDidBeginHandler) {
+				this.dragDidBeginHandler()
 			}
 		}
 	
 		container.touchMovedHandler = function(touchSequence) {
 			var position = touchSequence.currentSample.globalLocation
 			container.origin = position.subtract(initialPositionInContainer)
-
-			if (container.dragDidMoveHandler) {
-				container.dragDidMoveHandler()
+			if (this.dragDidMoveHandler) {
+				this.dragDidMoveHandler()
 			}
 		}
 
 		container.touchEndedHandler = function(touchSequence) {
-			if (container.dragDidEndHandler) {
-				container.dragDidEndHandler()
+			if (this.dragDidEndHandler) {
+				this.dragDidEndHandler()
 			}
 		}
 	}
 
 	container.becomeDraggable()
-	return container
-}
-
-
-function makeBlock(args) {
-	var color = args.color
-	var size = args.size
-	var cornerRadius = args.cornerRadius
-
-	var rect = new Rect({x: 50, y: 50, width: size, height: size})
-	var block = new Layer()
-	block.frame = rect
-	block.cornerRadius = cornerRadius
-
-	block.backgroundColor = color
-
-
-	return block
+	this.container = container
 }
 
 
@@ -109,8 +107,20 @@ function log(obj) {
 
 
 // Hack to bring a layer to the front...this should be a part of prototope!
+// Seems to break drag and drop :\
 function bringLayerToFront(layer) {
 	var parent = layer.parent
 	layer.parent = undefined
 	layer.parent = parent
 }
+
+
+//---------------------------------------
+// Test code (you don't need to copy this)
+//---------------------------------------
+var brick = new Brick({
+	length: 3,
+	color: Color.purple
+})
+
+brick.container.moveToCenterOfParentLayer()
