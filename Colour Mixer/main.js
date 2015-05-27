@@ -1,16 +1,32 @@
+//
+// Colour mixer
+//	based on Prototope 5d81b57
+//
+// A few different ideas on how to do a colour mixer! Obviously lots of programmer art here :)
+// Currently using RGB because it's simpler to model than RYB, but that's one are of improvement.
+
+
+//----------------------
+// Some global setup
+//----------------------
+
 var mixer = new Layer()
 
+// This structure holds the numbers that make up the colour components.
 var color = {
 	red: 0.,
 	green: 0.,
 	blue: 0.
 }
 
+
+/** Get the current colour to be used as output. */
 function currentColor() {
 	return new Color({red: color.red, green: color.green, blue: color.blue})
 }
 
 
+/** Colours used in the interface. */
 var colorConstants = {
 	red: new Color({hex: "e65b4c"}),
 	green: new Color({hex: "83c066"}),
@@ -22,11 +38,10 @@ var colorConstants = {
 mixer.updateBackgroundColor = function() {
 	mixer.backgroundColor = colorConstants.grey
 	mixer.border = new Border({color: new Color({hex: "555555"}), width: 8})
-	// mixer.backgroundColor = new Color({red: color.red, green: color.green, blue: color.blue})
 }
 
 
-
+/** Makes one of the squares that holds bricks, and associated methods. */
 function makeSquare(bgColor, colorName) {
 	var layer = new Layer()
 	
@@ -76,6 +91,7 @@ function makeSquare(bgColor, colorName) {
 	/** Returns if the layer contains the given brick. */
 	layer.containsBrick = function(brick) { return layer.bricks.indexOf(brick) >= 0 }
 
+	/** Returns the total count of blocks in all this container's bricks. */
 	layer.totalCount = function() {
 		var total = 0
 		for (var index = 0; index < layer.bricks.length; index++) {
@@ -85,11 +101,14 @@ function makeSquare(bgColor, colorName) {
 		return total
 	}
 
+
+	/** Returns a colour value, usually from 0 to 1, based on how many total blocks there are. This may go over 1, but values over 1 are ignored when the final colour is made. */
 	layer.totalColor = function() {
 		return layer.totalCount() / 10.0
 	}
 
 
+	/** Rotates the bricks 90 degrees so they can "fit down the pipe." */
 	layer.rotateBricks = function () {
 		for (var index = 0; index < layer.bricks.length; index++) {
 			var brick = layer.bricks[index]
@@ -97,6 +116,8 @@ function makeSquare(bgColor, colorName) {
 		}
 	}
 
+
+	/** Moves and fades the bricks into the mixer. */
 	layer.moveToMixer = function () {
 		for (var index = 0; index < layer.bricks.length; index++) {
 			var brick = layer.bricks[index]
@@ -117,6 +138,7 @@ function makePipe(colorName) {
 }
 
 
+/** The grinder is the lever on the side. We might want to update this to be more direct (e.g., pull the lever).. right now you just tap it. This object has methods for making the "colour mixing process" happen. */
 function makeGrinder(args) {
 	var layer = new Layer({imageName: "lever"})
 
@@ -173,6 +195,11 @@ function makeGrinder(args) {
 
 	return layer
 }
+
+
+//----------------------------------------------------
+// Setup everything else
+//----------------------------------------------------
 
 // Using RGB for now because modelling RYB on a computer seemed like a rabit hole not worth going down quite yet...
 var red = makeSquare(colorConstants.red, "red")
