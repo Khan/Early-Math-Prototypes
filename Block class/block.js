@@ -106,15 +106,6 @@ function log(obj) {
 }
 
 
-// Hack to bring a layer to the front...this should be a part of prototope!
-// Seems to break drag and drop :\
-function bringLayerToFront(layer) {
-	var parent = layer.parent
-	layer.parent = undefined
-	layer.parent = parent
-}
-
-
 //---------------------------------------
 // Test code (you don't need to copy this)
 //---------------------------------------
