@@ -8,6 +8,8 @@ if (Layer.root.width != 1024) {
 
 // Global sound switch: disable to avoid annoyance during development!
 var soundEnabled = false
+if (!soundEnabled) { Sound.prototype.play = function() {} }
+
 var blockSettings = {
 	size: 87,
 	cornerRadius: 22.5
@@ -16,21 +18,48 @@ var blockSettings = {
 // The empty slot, if any, under a brick being dragged.
 var slotUnderBrick = undefined
 
+var trackCenterY = 69
+var trackSlotWidth = 87
+var dotBaseline = 25
+var firstTrackSlotX = 80
+
 
 var kittyTrack =  makeSoundtrackLayer({
 	name: "kitty",
-	sound: "meow"
+	sound: "cat_a"
 })
 
 var beeTrack = makeSoundtrackLayer({
-	name: "bee"
+	name: "bee",
+	sound: "dog_e"
 })
 
 var dogTrack = makeSoundtrackLayer({
-	name: "dog"
+	name: "dog",
+	sound: "dog_e8"
 })
 
 var trackLayers = [kittyTrack, beeTrack, dogTrack]
+
+
+function columnIsFull(index) {
+	for (var counter = 0; counter < trackLayers.length; counter++) {
+		var track = trackLayers[counter]
+		if (!track.slotAtIndexIsOccupied(index)) {
+			return false
+		}
+	}
+
+	return true
+}
+
+
+function playHarmonyForColumn(index) {
+	for (var counter = 0; counter < trackLayers.length; counter++) {
+		var track = trackLayers[counter]
+		track.playSoundForSlotAtIndex(index)
+	}
+}
 
 var topMargin = 40
 kittyTrack.originY = topMargin
@@ -58,8 +87,18 @@ function makeSoundtrackLayer(args) {
 	layer.track = track
 	layer.imageLayer = imageLayer
 
+	var sound = new Sound({name: args.sound})
+
 	layer.makeSlotsUnswell = function() {
 		track.makeSlotsUnswell()
+	}
+
+	layer.slotAtIndexIsOccupied = function(index) {
+		return track.noteSlots[index].isEmpty() !== true
+	}
+
+	layer.playSoundForSlotAtIndex = function(index) {
+		sound.play()
 	}
 
 	return layer
@@ -156,43 +195,17 @@ function makeToolbox() {
 		orange: new Color({hex: "EFAC5F"})
 	}
 
-	var blueBrick = new Brick({
-		length: 1,
-		color: blockColors.blue,
-		size: blockSettings.size,
-		cornerRadius: blockSettings.cornerRadius
+	var blueOriginY = 560
+	makeBricks({
+		color: blockColors.blue, 
+		origin: new Point({x: 40, y: blueOriginY})
 	})
 
-
-	blueBrick.container.originX = 40
-	blueBrick.container.originY = 600
-
-
-
-	var orangeBrick = new Brick({
-		length: 1,
-		color: blockColors.orange,
-		size: blockSettings.size,
-		cornerRadius: blockSettings.cornerRadius
+	makeBricks({
+		color: blockColors.orange, 
+		origin: new Point({x: 40, y: blueOriginY + blockSettings.size + 20})
 	})
 
-	orangeBrick.container.originY = blueBrick.container.originY
-	orangeBrick.container.moveToRightOfSiblingLayer({siblingLayer: blueBrick.container, margin: 20})
-
-
-	orangeBrick.setDragDidBeginHandler(function() {
-		if (orangeBrick.slot) {
-			orangeBrick.slot.removeBrick()
-		}
-	})
-
-	orangeBrick.setDragDidMoveHandler(function() {
-		updateSlotsForBrick(orangeBrick.container)
-	})
-
-	orangeBrick.setDragDidEndHandler(function() {
-		dropBrick(orangeBrick)
-	})
 
 	return layer
 }
@@ -201,6 +214,7 @@ function makeToolbox() {
 function updateSlotsForBrick(brickContainer) {
 	var globalPoint = brickContainer.position
 
+	var targetSlot = undefined // we may not be over any slots
 	for (var index = 0; index < trackLayers.length; index++) {
 		var track = trackLayers[index]
 		if (!track.containsGlobalPoint(globalPoint)) { 
@@ -212,13 +226,15 @@ function updateSlotsForBrick(brickContainer) {
 			var slot = track.track.noteSlots[slotIndex]
 			if (slot.containsGlobalPoint(globalPoint) && slot.isEmpty()) {
 				slot.swell()
-				slotUnderBrick = slot
+				targetSlot = slot
 			} else {
 				slot.unswell()
 			}
 
 		}
 	}
+
+	slotUnderBrick = targetSlot
 }
 
 function dropBrick(brick) {
@@ -233,10 +249,139 @@ function log(obj) {
 	console.log(JSON.stringify(obj, null, 4))
 }
 
+function makeSlotDots(args) {
+	var totalLength = args.totalLength
+
+	var slotDots = []
+	for (var slotIndex = 0; slotIndex < totalLength; slotIndex++) {
+		var dot = new Layer()
+		dot.backgroundColor = Color.gray
+		dot.width = dot.height = 13
+		dot.cornerRadius = dot.width / 2.0
+		dot.scale = 0.001
+		dot.alpha = 0
+		dot.y = dotBaseline
+
+		var noteSlot = trackLayers[0].track.noteSlots[slotIndex]
+		dot.x = noteSlot.globalPosition.x
+
+
+
+		dot.animators.scale.springSpeed = 60
+		dot.animators.scale.springBounciness = 0
+		dot.animators.y.springSpeed = 50
+		dot.animators.y.springBounciness = 0
+		dot.animators.alpha.springSpeed = 40
+		dot.animators.alpha.springBounciness = 0
+		slotDots.push(dot)
+	}
+	return slotDots
+}
+
+
+//------------------------------------------------------
+// Audio playback
+//------------------------------------------------------
+
+
+// Using an action behavior instead of a heartbeat because heartbeats still don't dispose properly on reload. :/
+var slotDots = makeSlotDots({totalLength: 8})
+var beatIndex = 0
+var lastPlayTime = Timestamp.currentTimestamp()
+
+Layer.root.behaviors = [
+	new ActionBehavior({handler: function() {
+		var totalNumberOfBeats = 8
+		var totalTrackLength = 8
+
+		var beatLength = 0.3
+		var dotAnimationLength = 0.18
+		var currentTimestamp = Timestamp.currentTimestamp()
+
+		var beatIndexWithinTrack = beatIndex % totalTrackLength
+		var fullColumn = columnIsFull(beatIndexWithinTrack)
+
+		if (currentTimestamp - lastPlayTime > beatLength - dotAnimationLength) {
+			var currentDot = slotDots[beatIndexWithinTrack]
+			currentDot.animators.scale.target = new Point({x: 1, y: 1})
+			currentDot.animators.y.target = dotBaseline + 30
+			currentDot.animators.alpha.target = 1
+
+
+			var lastBeatIndex = beatIndex - 1
+			if (lastBeatIndex < 0) {
+				lastBeatIndex = totalNumberOfBeats - 1
+			}
+
+			var lastDot = slotDots[lastBeatIndex % totalTrackLength]
+			lastDot.animators.scale.target = new Point({x: 0, y: 0})
+			lastDot.animators.y.target = dotBaseline
+			lastDot.animators.alpha.target = 0
+		}
+		if (currentTimestamp - lastPlayTime > beatLength) {
+			var foundSound = false
+			if (fullColumn) {
+				playHarmonyForColumn(beatIndexWithinTrack)
+			}
+
+			if (!foundSound) {
+
+				var sound = new Sound({name: "ta"})
+				sound.play()
+			}
+
+			lastPlayTime += beatLength
+			beatIndex = (beatIndex + 1) % totalNumberOfBeats
+		}
+	}})
+]
+
+
 
 //-------------------------------------------------
 // Bricks
 //-------------------------------------------------
+
+/** This function makes bricks that go along the bottom toolbox area. It also configures them so they properly fit into empty slots. */
+function makeBricks(args) {
+	var color = args.color
+	var origin = args.origin
+	var length = 8
+
+	var maxX = origin.x
+	for (var index = 0; index < length; index++) {
+		var brick = new Brick({
+			length: 1,
+			color: color,
+			size: blockSettings.size,
+			cornerRadius: blockSettings.cornerRadius
+		})
+		var container = brick.container
+		container.originX = maxX
+		container.originY = origin.y
+
+		maxX = container.frameMaxX + 20
+
+		setupTouchForBrick(brick)
+	}
+
+
+	function setupTouchForBrick(brick) {
+		brick.setDragDidBeginHandler(function() {
+			if (brick.slot) {
+				brick.slot.removeBrick()
+			}
+		})
+
+		brick.setDragDidMoveHandler(function() {
+			updateSlotsForBrick(brick.container)
+		})
+
+		brick.setDragDidEndHandler(function() {
+			dropBrick(brick)
+		})
+	}
+}
 
 /** 
 	Create a brick with the given arguments object. Valid arguments are:
