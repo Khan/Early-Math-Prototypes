@@ -7,7 +7,8 @@ if (Layer.root.width != 1024) {
 }
 
 // Global sound switch: disable to avoid annoyance during development!
-var soundEnabled = false
+var soundEnabled = true
+var tickEnabled = false // controls the ticking sound
 if (!soundEnabled) { Sound.prototype.play = function() {} }
 
 var blockSettings = {
@@ -31,12 +32,12 @@ var kittyTrack =  makeSoundtrackLayer({
 
 var beeTrack = makeSoundtrackLayer({
 	name: "bee",
-	sound: "dog_e"
+	sound: "dog_e" // get it...dog-e
 })
 
 var dogTrack = makeSoundtrackLayer({
 	name: "dog",
-	sound: "dog_e8"
+	sound: "dog_e8"// get it...dog-e-8
 })
 
 var trackLayers = [kittyTrack, beeTrack, dogTrack]
@@ -324,7 +325,7 @@ Layer.root.behaviors = [
 				playHarmonyForColumn(beatIndexWithinTrack)
 			}
 
-			if (!foundSound) {
+			if (!foundSound && tickEnabled) {
 
 				var sound = new Sound({name: "ta"})
 				sound.play()
