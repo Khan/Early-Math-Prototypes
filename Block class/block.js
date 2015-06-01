@@ -67,28 +67,36 @@ function Brick(args) {
 
 	/** Gets the number of blocks in this brick. */
 	this.length = function() { return blocks.length }
+	var self = this
+	this.setDragDidBeginHandler = function(handler) { self.dragDidBeginHandler = handler }
+	this.setDragDidMoveHandler = function(handler) { self.dragDidMoveHandler = handler }
+	this.setDragDidEndHandler = function(handler) { self.dragDidEndHandler = handler }
+
 
 	container.becomeDraggable = function() {
 
 		var initialPositionInContainer = new Point()
 		container.touchBeganHandler = function(touchSequence) {
 			initialPositionInContainer = touchSequence.currentSample.locationInLayer(container)
-			if (this.dragDidBeginHandler) {
-				this.dragDidBeginHandler()
+			container.comeToFront()
+			if (self.dragDidBeginHandler) {
+				self.dragDidBeginHandler()
 			}
 		}
 	
 		container.touchMovedHandler = function(touchSequence) {
+
 			var position = touchSequence.currentSample.globalLocation
 			container.origin = position.subtract(initialPositionInContainer)
-			if (this.dragDidMoveHandler) {
-				this.dragDidMoveHandler()
+
+			if (self.dragDidMoveHandler) {
+				self.dragDidMoveHandler()
 			}
 		}
 
 		container.touchEndedHandler = function(touchSequence) {
-			if (this.dragDidEndHandler) {
-				this.dragDidEndHandler()
+			if (self.dragDidEndHandler) {
+				self.dragDidEndHandler()
 			}
 		}
 	}
@@ -96,6 +104,7 @@ function Brick(args) {
 	container.becomeDraggable()
 	this.container = container
 }
+
 
 
 //-----------------------------------------
