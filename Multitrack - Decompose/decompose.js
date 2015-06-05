@@ -118,7 +118,7 @@ function makeTrackNotesLayer() {
 	trackNotesLayer.noteSlots = []
 
 	var maxX = 0
-	var margin = 5
+	var margin = 2
 	for (var counter = 0; counter < numberOfNotes; counter++) {
 		var noteSlot = makeNoteSlot()
 		noteSlot.parent = trackNotesLayer
@@ -194,7 +194,6 @@ function makeTrackNotesLayer() {
 			}
 			
 			if (slotToSwellStartingIndex !== undefined) {
-				log("droppable")
 				dropTarget = {
 					startIndexOfTargetSlot: slotToSwellStartingIndex,
 					trackLayer: trackNotesLayer
@@ -229,9 +228,10 @@ function makeNoteSlot() {
 
 	slot.isEmpty = function() { return slot.block === undefined }
 	slot.dropBlock = function(block) {
-		// Can't change the brick's parent because that breaks touch handling right now :\
+
 		block.parent = slot
 		block.moveToCenterOfParentLayer()
+		// block.globalPosition = slot.globalPosition
 		// block.animators.position.target = slot.bounds.center
 		slot.block = block
 		block.slot = slot
@@ -302,15 +302,22 @@ function updateSlotsForBrick(brick) {
 
 function dropBrick(brick) {
 	if (dropTarget) {
-		log("gonna drop?")
+		
+		var firstSlot = undefined
 		for (var index = 0; index < brick.length(); index++) {
 			var slot = dropTarget.trackLayer.noteSlots[index + dropTarget.startIndexOfTargetSlot]
 			var block = brick.blocks[index]
 			slot.unswell()
 			slot.dropBlock(block)
+			
+			if (firstSlot === undefined) {
+				firstSlot = slot
+			}
 		}
 		
 		dropTarget = undefined
+		brick.dropped = true
+		// brick.container.origin = firstSlot.convertLocalPointToGlobalPoint(firstSlot.origin)
 	}
 	
 }
@@ -433,8 +440,15 @@ function makeBricks(args) {
 
 	function setupTouchForBrick(brick) {
 		brick.setDragDidBeginHandler(function() {
-			if (brick.slot) {
-				brick.slot.removeBrick()
+			if (brick.dropped === true) {
+				for (var index = 0; index < brick.blocks.length; index++) {
+					var block = brick.blocks[index]
+					block.parent = brick.container
+					block.slot.removeBrick()
+				}
+				
+				brick.layoutBlocks()
+				brick.dropped = false
 			}
 		})
 
@@ -470,23 +484,35 @@ function Brick(args) {
 	if (length < 1) { return }
 
 	var container = new Layer()
-	container.backgroundColor = Color.purple
 	container.size = new Size({width: (size + 2) * length, height: size})
 	var blocks = []
 
-	var maxX = 0
 	for (var index = 0; index < length; index++) {
 		var color = color
 		var block = makeBlock({color: color, size: size, cornerRadius: cornerRadius})
 		
 		block.parent = container
-		block.originX = maxX + 2
-		block.originY = 0
-
-		maxX = block.frameMaxX
 
 		blocks.push(block)
 	}
+	
+	
+	this.layoutBlocks = function() {
+		var maxX = 0
+		for (var index = 0; index < length; index++) {
+
+			var block = blocks[index]
+			
+			block.originX = maxX + 2
+			block.originY = 0
+
+			maxX = block.frameMaxX
+		}
+		
+	}
+	
+	this.layoutBlocks()
+	
 
 	// Privately, make a block
 	function makeBlock(args) {
