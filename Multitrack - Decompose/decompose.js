@@ -26,6 +26,10 @@ var dotBaseline = 25
 var firstTrackSlotX = 80
 
 
+// Contains all the bricks in the scene.
+var allBricks = []
+
+
 var kittyTrack =  makeSoundtrackLayer({
 	name: "kitty",
 	sound: "cat_a"
@@ -42,6 +46,10 @@ var dogTrack = makeSoundtrackLayer({
 })
 
 var trackLayers = [kittyTrack, beeTrack, dogTrack]
+
+
+var splitter = makeSplitter()
+splitter.moveToCenterOfParentLayer()
 
 
 function columnIsFull(index) {
@@ -267,15 +275,15 @@ function makeToolbox() {
 	}
 
 	var blueOriginY = 560
-	makeBricks({
+	allBricks.push(makeBricks({
 		color: blockColors.blue, 
 		origin: new Point({x: 40, y: blueOriginY})
-	})
+	}))
 
-	makeBricks({
+	allBricks.push(makeBricks({
 		color: blockColors.orange, 
 		origin: new Point({x: 40, y: blueOriginY + blockSettings.size + 20})
-	})
+	}))
 
 
 	return layer
@@ -425,7 +433,7 @@ function makeBricks(args) {
 	var origin = args.origin
 
 	var brick = new Brick({
-		length: 2,
+		length: 9,
 		color: color,
 		size: blockSettings.size,
 		cornerRadius: blockSettings.cornerRadius
@@ -460,6 +468,8 @@ function makeBricks(args) {
 			dropBrick(brick)
 		})
 	}
+	
+	return brick
 }
 
 /** 
@@ -573,4 +583,94 @@ function Brick(args) {
 	// "public" properties
 	this.container = container
 	this.blocks = blocks
+}
+
+
+//----------------------------------------------------------
+// Block splitter
+//----------------------------------------------------------
+
+function makeSplitter() {
+	// Have to put the scissors in a container because touches don't yet work on shapes! Yuuuuuuck.
+	let scissorsContainer = new Layer()
+	scissorsContainer.backgroundColor = Color.purple
+	let scissors = new ShapeLayer({parent: scissorsContainer})
+	scissors.segments = [
+		new Segment(new Point({x: 25, y: 0})),
+		new Segment(new Point({x: 0, y: 100})),
+		new Segment(new Point({x: 50, y: 100}))
+	]
+	scissors.strokeColor = undefined
+	scissors.fillColor = Color.lightGray
+	scissors.origin = Point.zero
+	scissorsContainer.originX = 20
+	scissorsContainer.originY = Layer.root.height - scissors.height - 30
+	scissorsContainer.width = 50
+	scissorsContainer.height = 100
+	scissorsContainer.animators.y.springSpeed = 15
+	scissorsContainer.animators.y.springBounciness = 0
+	
+	
+	// Touch handling
+	scissorsContainer.touchBeganHandler = () => {
+		scissors.animators.scale.target = new Point({x: 1.1, y: 1.1})
+	}
+	
+	var blockWidth = blockSettings.size
+	const lineWidth = 1.5
+	
+	scissorsContainer.touchMovedHandler = touchSequence => {
+		scissorsContainer.position = scissorsContainer.position.add(touchSequence.currentSample.globalLocation.subtract(touchSequence.previousSample.globalLocation))
+
+
+		for (var brickIndex = 0; brickIndex < allBricks.length; brickIndex++) {
+			var blockContainer = allBricks[brickIndex].container
+			var blocks = allBricks[brickIndex]
+			
+			const containerLocation = blockContainer.convertGlobalPointToLocalPoint(new Point({x: scissorsContainer.x, y: scissorsContainer.originY}))
+			
+
+			if (blockContainer.bounds.inset({value: -20}).contains(containerLocation)) {
+				const blockLeftIndex = clip({value: Math.round(containerLocation.x / blockWidth), min: 1, max: blocks.length - 1})
+				
+				for (let blockIndex = 0; blockIndex < blocks.length; blockIndex++) {
+					blocks[blockIndex].animators.position.target = new Point({x: blockIndex * (blockWidth + lineWidth) + (blockIndex < blockLeftIndex ? -15 : 15) + blockWidth / 2.0, y: blockWidth / 2.0})
+				}
+				
+				const blockYIndex = clip({value: Math.round(containerLocation.y / blockWidth), min: 0, max: 1})
+				blockContainer.splitPoint = blockLeftIndex - 1
+				log("splitttt?")	
+					
+			} else {
+				blockContainer.splitPoint = undefined
+			}
+
+			for (let blockIndex = 0; blockIndex < blocks.length; blockIndex++) {
+				const splitAmount = (blockContainer.splitPoint === undefined) ? 0 : 15
+				
+				var x = blockIndex * (blockWidth + lineWidth) + (blockIndex <= blockContainer.splitPoint ? -splitAmount : splitAmount) + blockWidth / 2.0
+				blocks[blockIndex].animators.position.target = new Point({x: x, y: blockWidth / 2.0})
+			}
+		}
+	}
+	
+	
+	scissorsContainer.touchEndedHandler = () => {	
+		scissors.animators.scale.target = new Point({x: 1, y: 1})
+
+		// if (blockContainer.isSplit) { return }
+
+		// const didSplit = blockContainer.splitPoint !== undefined
+		// for (let blockIndex = 0; blockIndex < blockContainer.blocks.length; blockIndex++) {
+		// 	const splitAmount = didSplit ? 50 : 0
+		// 	blockContainer.blocks[blockIndex].animators.position.target = new Point({x: blockIndex * (blockWidth + lineWidth) + (blockIndex <= blockContainer.splitPoint ? -splitAmount : splitAmount) + blockWidth / 2.0, y: blockWidth / 2.0})
+		// }
+
+		// if (didSplit) {
+		// 	scissorsContainer.animators.y.target = blockContainer.frameMaxY + 110
+		// }
+		// blockContainer.isSplit = didSplit
+	}
+
+	return scissorsContainer
 }
