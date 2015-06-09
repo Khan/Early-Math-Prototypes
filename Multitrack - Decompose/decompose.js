@@ -500,7 +500,6 @@ function Brick(args) {
 	
 	
 	var container = new Layer()
-	container.size = new Size({width: (size + 2) * length, height: size})
 	var blocks = args.blocks || []
 	
 	
@@ -522,6 +521,10 @@ function Brick(args) {
 	/** Gets the number of blocks in this brick. Use this over the local variable length because it might get outdated. */
 	this.length = function() { return blocks.length }
 	
+	this.resizeBrickToFitBlocks = function() {
+		container.size = new Size({width: (size + 2) * self.length(), height: size})
+	}
+	
 	this.layoutBlocks = function() {
 		var maxX = 0
 		for (var index = 0; index < self.length(); index++) {
@@ -538,6 +541,7 @@ function Brick(args) {
 		
 	}
 	
+	this.resizeBrickToFitBlocks()
 	this.layoutBlocks()
 	
 
@@ -578,6 +582,7 @@ function Brick(args) {
 		var globalOrigin = firstBlockAfterSplit.convertLocalPointToGlobalPoint(originOfFirstBlockAfterSplit).add(new Point({x: 43, y: 0}))
 		
 		var newBrick = new Brick(newArgs)
+		log(newBrick)
 		newBrick.container.origin = globalOrigin
 		
 		newBrick.setDragDidBeginHandler(self.dragDidBeginHandler)
