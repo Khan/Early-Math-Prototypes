@@ -433,7 +433,7 @@ function makeBricks(args) {
 	var origin = args.origin
 
 	var brick = new Brick({
-		length: 9,
+		length: 4,
 		color: color,
 		size: blockSettings.size,
 		cornerRadius: blockSettings.cornerRadius
@@ -448,24 +448,24 @@ function makeBricks(args) {
 
 	function setupTouchForBrick(brick) {
 		brick.setDragDidBeginHandler(function() {
-			if (brick.dropped === true) {
-				for (var index = 0; index < brick.blocks.length; index++) {
-					var block = brick.blocks[index]
-					block.parent = brick.container
+			if (this.dropped === true) {
+				for (var index = 0; index < this.blocks.length; index++) {
+					var block = this.blocks[index]
+					block.parent = this.container
 					block.slot.removeBrick()
 				}
 				
-				brick.layoutBlocks()
-				brick.dropped = false
+				this.layoutBlocks()
+				this.dropped = false
 			}
 		})
 
 		brick.setDragDidMoveHandler(function() {
-			updateSlotsForBrick(brick)
+			updateSlotsForBrick(this)
 		})
 
 		brick.setDragDidEndHandler(function() {
-			dropBrick(brick)
+			dropBrick(this)
 		})
 	}
 	
@@ -479,6 +479,7 @@ function makeBricks(args) {
 	color: what colour are the blocks?
 	size: how big is each block? defaults to 50 if you don't provide one. (note: this is just one number because blocks are square)
 	cornerRadius: defaults to 8 if you don't provide one.
+	blocks: an array of existing blocks. defaults to undefined, in that case blocks are generated. If you provide your own, those blocks are used instead.
 
 	The returned brick already has drag and drop enabled and will do the right thing to stay under the finger as it is dragged.
 
@@ -495,15 +496,16 @@ function Brick(args) {
 
 	var container = new Layer()
 	container.size = new Size({width: (size + 2) * length, height: size})
-	var blocks = []
+	var blocks = args.blocks || []
+	
+	if (blocks.length < 1) {
+		for (var index = 0; index < length; index++) {
+			var color = color
+			var block = makeBlock({color: color, size: size, cornerRadius: cornerRadius})
+			
 
-	for (var index = 0; index < length; index++) {
-		var color = color
-		var block = makeBlock({color: color, size: size, cornerRadius: cornerRadius})
-		
-		block.parent = container
-
-		blocks.push(block)
+			blocks.push(block)
+		}
 	}
 	
 	
@@ -512,6 +514,7 @@ function Brick(args) {
 		for (var index = 0; index < length; index++) {
 
 			var block = blocks[index]
+			block.parent = container
 			
 			block.originX = maxX + 2
 			block.originY = 0
@@ -548,6 +551,30 @@ function Brick(args) {
 	this.setDragDidBeginHandler = function(handler) { self.dragDidBeginHandler = handler }
 	this.setDragDidMoveHandler = function(handler) { self.dragDidMoveHandler = handler }
 	this.setDragDidEndHandler = function(handler) { self.dragDidEndHandler = handler }
+	
+	
+	/** Split this brick at the index point. Creates a new brick and moves the blocks after the split into the new brick. Returns the new brick. */
+	this.splitAtIndex = function(index) {
+		var newArgs = args
+		
+		// split the blocks apart given the index. index is the block *before* the split.
+		var lengthOfNewBrick = args.length - (index + 1)
+		newArgs.length = lengthOfNewBrick
+		newArgs.blocks = blocks.splice(index + 1, lengthOfNewBrick)
+		
+		var firstBlockAfterSplit = blocks[index]
+		var originOfFirstBlockAfterSplit = firstBlockAfterSplit.origin
+		var globalOrigin = firstBlockAfterSplit.convertLocalPointToGlobalPoint(originOfFirstBlockAfterSplit).add(new Point({x: 43, y: 0}))
+		
+		var newBrick = new Brick(newArgs)
+		newBrick.container.origin = globalOrigin
+		
+		newBrick.setDragDidBeginHandler(this.dragDidBeginHandler)
+		newBrick.setDragDidMoveHandler(this.dragDidMoveHandler)
+		newBrick.setDragDidEndHandler(this.dragDidEndHandler)
+		
+		return newBrick
+	}
 
 
 	container.becomeDraggable = function() {
@@ -617,7 +644,7 @@ function makeSplitter() {
 	}
 	
 	var blockWidth = blockSettings.size
-	const lineWidth = 1.5
+	const lineWidth = 2
 	
 	scissorsContainer.touchMovedHandler = touchSequence => {
 		scissorsContainer.position = scissorsContainer.position.add(touchSequence.currentSample.globalLocation.subtract(touchSequence.previousSample.globalLocation))
@@ -625,7 +652,8 @@ function makeSplitter() {
 
 		for (var brickIndex = 0; brickIndex < allBricks.length; brickIndex++) {
 			var blockContainer = allBricks[brickIndex].container
-			var blocks = allBricks[brickIndex]
+			var blocks = allBricks[brickIndex].blocks
+			if (blocks.length <= 1) { return }
 			
 			const containerLocation = blockContainer.convertGlobalPointToLocalPoint(new Point({x: scissorsContainer.x, y: scissorsContainer.originY}))
 			
@@ -638,8 +666,7 @@ function makeSplitter() {
 				}
 				
 				const blockYIndex = clip({value: Math.round(containerLocation.y / blockWidth), min: 0, max: 1})
-				blockContainer.splitPoint = blockLeftIndex - 1
-				log("splitttt?")	
+				blockContainer.splitPoint = blockLeftIndex - 1	
 					
 			} else {
 				blockContainer.splitPoint = undefined
@@ -657,19 +684,30 @@ function makeSplitter() {
 	
 	scissorsContainer.touchEndedHandler = () => {	
 		scissors.animators.scale.target = new Point({x: 1, y: 1})
+		
+		
+		var startingCountOfBricks = allBricks.length
+		for (var brickIndex = 0; brickIndex < startingCountOfBricks; brickIndex++) {
+			var blockContainer = allBricks[brickIndex].container
+			var blocks = allBricks[brickIndex].blocks
+			
+			if (blocks.length <= 1) { return }
+			
 
-		// if (blockContainer.isSplit) { return }
+			const didSplit = blockContainer.splitPoint !== undefined
 
-		// const didSplit = blockContainer.splitPoint !== undefined
-		// for (let blockIndex = 0; blockIndex < blockContainer.blocks.length; blockIndex++) {
-		// 	const splitAmount = didSplit ? 50 : 0
-		// 	blockContainer.blocks[blockIndex].animators.position.target = new Point({x: blockIndex * (blockWidth + lineWidth) + (blockIndex <= blockContainer.splitPoint ? -splitAmount : splitAmount) + blockWidth / 2.0, y: blockWidth / 2.0})
-		// }
+			if (didSplit) {
+				var newBrick = allBricks[brickIndex].splitAtIndex(blockContainer.splitPoint)
+				allBricks.push(newBrick)
+			} else {
+				// reposition the blocks?
+			}
 
-		// if (didSplit) {
-		// 	scissorsContainer.animators.y.target = blockContainer.frameMaxY + 110
-		// }
-		// blockContainer.isSplit = didSplit
+			if (didSplit) {
+				scissorsContainer.animators.y.target = blockContainer.frameMaxY + 110
+			}
+			blockContainer.isSplit = didSplit
+		}
 	}
 
 	return scissorsContainer
