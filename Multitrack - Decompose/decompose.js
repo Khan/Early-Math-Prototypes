@@ -522,7 +522,9 @@ function Brick(args) {
 	this.length = function() { return blocks.length }
 	
 	this.resizeBrickToFitBlocks = function() {
+		var origin = container.origin
 		container.size = new Size({width: (size + 2) * self.length(), height: size})
+		container.origin = origin
 	}
 	
 	this.layoutBlocks = function() {
@@ -588,6 +590,8 @@ function Brick(args) {
 		newBrick.setDragDidBeginHandler(self.dragDidBeginHandler)
 		newBrick.setDragDidMoveHandler(self.dragDidMoveHandler)
 		newBrick.setDragDidEndHandler(self.dragDidEndHandler)
+		
+		self.resizeBrickToFitBlocks()
 		
 		return newBrick
 	}
