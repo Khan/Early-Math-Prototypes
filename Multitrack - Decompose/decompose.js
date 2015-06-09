@@ -493,10 +493,21 @@ function Brick(args) {
 
 	// It doesn't really make sense to make a brick of 0 blocks, does it?
 	if (length < 1) { return }
-
+	
+	
+	// lol what is scope
+	var self = this
+	
+	
 	var container = new Layer()
 	container.size = new Size({width: (size + 2) * length, height: size})
 	var blocks = args.blocks || []
+	
+	
+	// "public" properties
+	// these have to be here because javascript can't do things out of order
+	this.container = container
+	this.blocks = blocks
 	
 	if (blocks.length < 1) {
 		for (var index = 0; index < length; index++) {
@@ -508,12 +519,15 @@ function Brick(args) {
 		}
 	}
 	
+	/** Gets the number of blocks in this brick. Use this over the local variable length because it might get outdated. */
+	this.length = function() { return blocks.length }
 	
 	this.layoutBlocks = function() {
 		var maxX = 0
-		for (var index = 0; index < length; index++) {
+		for (var index = 0; index < self.length(); index++) {
 
 			var block = blocks[index]
+			log(block)
 			block.parent = container
 			
 			block.originX = maxX + 2
@@ -545,9 +559,6 @@ function Brick(args) {
 	}
 
 
-	/** Gets the number of blocks in this brick. */
-	this.length = function() { return blocks.length }
-	var self = this
 	this.setDragDidBeginHandler = function(handler) { self.dragDidBeginHandler = handler }
 	this.setDragDidMoveHandler = function(handler) { self.dragDidMoveHandler = handler }
 	this.setDragDidEndHandler = function(handler) { self.dragDidEndHandler = handler }
@@ -558,7 +569,7 @@ function Brick(args) {
 		var newArgs = args
 		
 		// split the blocks apart given the index. index is the block *before* the split.
-		var lengthOfNewBrick = args.length - (index + 1)
+		var lengthOfNewBrick = self.length() - (index + 1)
 		newArgs.length = lengthOfNewBrick
 		newArgs.blocks = blocks.splice(index + 1, lengthOfNewBrick)
 		
@@ -569,9 +580,9 @@ function Brick(args) {
 		var newBrick = new Brick(newArgs)
 		newBrick.container.origin = globalOrigin
 		
-		newBrick.setDragDidBeginHandler(this.dragDidBeginHandler)
-		newBrick.setDragDidMoveHandler(this.dragDidMoveHandler)
-		newBrick.setDragDidEndHandler(this.dragDidEndHandler)
+		newBrick.setDragDidBeginHandler(self.dragDidBeginHandler)
+		newBrick.setDragDidMoveHandler(self.dragDidMoveHandler)
+		newBrick.setDragDidEndHandler(self.dragDidEndHandler)
 		
 		return newBrick
 	}
@@ -607,9 +618,6 @@ function Brick(args) {
 
 	container.becomeDraggable()
 
-	// "public" properties
-	this.container = container
-	this.blocks = blocks
 }
 
 
@@ -651,9 +659,11 @@ function makeSplitter() {
 
 
 		for (var brickIndex = 0; brickIndex < allBricks.length; brickIndex++) {
-			var blockContainer = allBricks[brickIndex].container
-			var blocks = allBricks[brickIndex].blocks
+			var brick = allBricks[brickIndex]
+			var blockContainer = brick.container
+			var blocks = brick.blocks
 			if (blocks.length <= 1) { return }
+			if (brick.dropped) { return }
 			
 			const containerLocation = blockContainer.convertGlobalPointToLocalPoint(new Point({x: scissorsContainer.x, y: scissorsContainer.originY}))
 			
