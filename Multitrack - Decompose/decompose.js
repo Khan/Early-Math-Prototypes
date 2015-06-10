@@ -82,6 +82,8 @@ dogTrack.moveToHorizontalCenterOfParentLayer()
 dogTrack.moveBelowSiblingLayer({siblingLayer: beeTrack})
 
 var toolbox = makeToolbox()
+splitter.position = toolbox.position
+splitter.x = 85
 splitter.comeToFront()
 
 function makeSoundtrackLayer(args) {
@@ -276,16 +278,17 @@ function makeToolbox() {
 		blue: new Color({hex: "59C4DD"}),
 		orange: new Color({hex: "EFAC5F"})
 	}
-
+	
+	var blueOriginX = 160
 	var blueOriginY = 560
 	allBricks.push(makeBricks({
 		color: blockColors.blue, 
-		origin: new Point({x: 40, y: blueOriginY})
+		origin: new Point({x: blueOriginX, y: blueOriginY})
 	}))
 
 	allBricks.push(makeBricks({
 		color: blockColors.orange, 
-		origin: new Point({x: 40, y: blueOriginY + blockSettings.size + 20})
+		origin: new Point({x: blueOriginX, y: blueOriginY + blockSettings.size + 20})
 	}))
 
 
