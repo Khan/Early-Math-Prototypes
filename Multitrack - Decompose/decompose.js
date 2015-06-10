@@ -503,7 +503,6 @@ function Brick(args) {
 	
 	
 	var container = new Layer({name: "brick"})
-	container.backgroundColor = Color.purple
 	var blocks = args.blocks || []
 	
 	
@@ -511,6 +510,7 @@ function Brick(args) {
 	// these have to be here because javascript can't do things out of order
 	this.container = container
 	this.blocks = blocks
+	
 	
 	if (blocks.length < 1) {
 		for (var index = 0; index < length; index++) {
@@ -538,8 +538,6 @@ function Brick(args) {
 		for (var index = 0; index < self.length(); index++) {
 
 			var block = blocks[index]
-			console.log(block)
-			log(block)// there's some kind of bug revealed here, something about a cyclic relationship
 			
 			block.parent = container
 			
@@ -547,6 +545,8 @@ function Brick(args) {
 			if (animated) {
 				block.animators.origin.target = origin
 			} else {
+				// disable the position animator, which might be going if you quickly move the splitter and drop it before animation settles down.
+				block.animators.position.stop()
 				block.origin = origin
 			}
 
@@ -584,12 +584,10 @@ function Brick(args) {
 	
 	/** Split this brick at the index point. Creates a new brick and moves the blocks after the split into the new brick. Returns the new brick. */
 	this.splitAtIndex = function(index) {
-		log("splitting " + self + " at index: " + index)
+		
 		// this logic is so hairy..
 		var newArgs = args
 		
-		var firstBlockAfterSplit = blocks[index+1]
-		var globalOrigin = firstBlockAfterSplit.parent.convertLocalPointToGlobalPoint(firstBlockAfterSplit.origin)
 		
 		
 		// split the blocks apart given the index. index is the block *before* the split.
@@ -601,14 +599,19 @@ function Brick(args) {
 		self.container.splitPoint = undefined
 		
 		var newBrick = new Brick(newArgs)
-		// log(newBrick)
-		newBrick.container.origin = globalOrigin
+		
+		self.resizeBrickToFitBlocks()
+		// newBrick.container.frame = self.container.frame
+		// newBrick.resizeBrickToFitBlocks()
+		
+		newBrick.container.moveToRightOfSiblingLayer({siblingLayer: self.container, margin: 15})
+		newBrick.container.y = self.container.y
+		// newBrick.container.origin = new Point({x: self.container.frameMaxX + 10, y: newBrick.container.originY})
 		
 		newBrick.setDragDidBeginHandler(self.dragDidBeginHandler)
 		newBrick.setDragDidMoveHandler(self.dragDidMoveHandler)
 		newBrick.setDragDidEndHandler(self.dragDidEndHandler)
 		
-		self.resizeBrickToFitBlocks()
 		
 		return newBrick
 	}
@@ -700,10 +703,6 @@ function makeSplitter() {
 			if (blockContainer.bounds.inset({value: -20}).contains(containerLocation)) {
 				const blockLeftIndex = clip({value: Math.round(containerLocation.x / blockWidth), min: 1, max: blocks.length - 1})
 				
-				for (let blockIndex = 0; blockIndex < blocks.length; blockIndex++) {
-					blocks[blockIndex].animators.position.target = new Point({x: blockIndex * (blockWidth + lineWidth) + (blockIndex < blockLeftIndex ? -15 : 15) + blockWidth / 2.0, y: blockWidth / 2.0})
-				}
-				
 				const blockYIndex = clip({value: Math.round(containerLocation.y / blockWidth), min: 0, max: 1})
 				blockContainer.splitPoint = blockLeftIndex - 1	
 					
@@ -714,7 +713,11 @@ function makeSplitter() {
 			for (let blockIndex = 0; blockIndex < blocks.length; blockIndex++) {
 				const splitAmount = (blockContainer.splitPoint === undefined) ? 0 : 15
 				
-				var x = blockIndex * (blockWidth + lineWidth) + (blockIndex <= blockContainer.splitPoint ? -splitAmount : splitAmount) + blockWidth / 2.0
+				
+				var x = blockIndex * (blockWidth + lineWidth) 
+				+ (blockIndex <= blockContainer.splitPoint ? -splitAmount : splitAmount) + blockWidth / 2.0
+				
+				
 				blocks[blockIndex].animators.position.target = new Point({x: x, y: blockWidth / 2.0})
 			}
 		}
@@ -727,10 +730,13 @@ function makeSplitter() {
 		
 		var startingCountOfBricks = allBricks.length
 		for (var brickIndex = 0; brickIndex < startingCountOfBricks; brickIndex++) {
-			var blockContainer = allBricks[brickIndex].container
-			var blocks = allBricks[brickIndex].blocks
+			var brick = allBricks[brickIndex]
+			var blockContainer = brick.container
+			var blocks = brick.blocks
 			
+			// bailure cases
 			if (blocks.length <= 1) { continue }
+			if (brick.dropped) { continue }
 			
 
 			const didSplit = blockContainer.splitPoint !== undefined
@@ -738,10 +744,9 @@ function makeSplitter() {
 			if (didSplit) {
 				var newBrick = allBricks[brickIndex].splitAtIndex(blockContainer.splitPoint)
 				allBricks.push(newBrick)
-				// log(allBricks)
 			}
 			
-			allBricks[brickIndex].layoutBlocks({animated: true})
+			brick.layoutBlocks({animated: true})
 			
 
 			if (didSplit) {
