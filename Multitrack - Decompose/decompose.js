@@ -7,8 +7,8 @@ if (Layer.root.width != 1024) {
 }
 
 // Global sound switch: disable to avoid annoyance during development!
-var soundEnabled = true
-var tickEnabled = false // controls the ticking sound
+var soundEnabled = false
+var tickEnabled = false // controls the ticking sound and appearance
 if (!soundEnabled) { Sound.prototype.play = function() {} }
 
 var blockSettings = {
@@ -67,7 +67,9 @@ function columnIsFull(index) {
 function playHarmonyForColumn(index) {
 	for (var counter = 0; counter < trackLayers.length; counter++) {
 		var track = trackLayers[counter]
-		track.playSoundForSlotAtIndex(index)
+		if (track.slotAtIndexIsOccupied(index)) {
+			track.playSoundForSlotAtIndex(index)
+		}
 	}
 }
 
@@ -391,7 +393,7 @@ Layer.root.behaviors = [
 			var currentDot = slotDots[beatIndexWithinTrack]
 			currentDot.animators.scale.target = new Point({x: 1, y: 1})
 			currentDot.animators.y.target = dotBaseline + 30
-			// currentDot.animators.alpha.target = 1
+			if (tickEnabled) { currentDot.animators.alpha.target = 1 }
 
 
 			var lastBeatIndex = beatIndex - 1
@@ -406,9 +408,9 @@ Layer.root.behaviors = [
 		}
 		if (currentTimestamp - lastPlayTime > beatLength) {
 			var foundSound = false
-			if (fullColumn) {
+			// if (fullColumn) {
 				playHarmonyForColumn(beatIndexWithinTrack)
-			}
+			// }
 
 			if (!foundSound && tickEnabled) {
 
