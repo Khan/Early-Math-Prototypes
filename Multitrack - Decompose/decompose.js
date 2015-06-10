@@ -502,7 +502,8 @@ function Brick(args) {
 	var self = this
 	
 	
-	var container = new Layer()
+	var container = new Layer({name: "brick"})
+	container.backgroundColor = Color.purple
 	var blocks = args.blocks || []
 	
 	
@@ -565,7 +566,7 @@ function Brick(args) {
 		var cornerRadius = args.cornerRadius
 
 		var rect = new Rect({x: 50, y: 50, width: size, height: size})
-		var block = new Layer()
+		var block = new Layer({name: "block"})
 		block.frame = rect
 		block.cornerRadius = cornerRadius
 
@@ -583,7 +584,7 @@ function Brick(args) {
 	
 	/** Split this brick at the index point. Creates a new brick and moves the blocks after the split into the new brick. Returns the new brick. */
 	this.splitAtIndex = function(index) {
-		
+		log("splitting " + self + " at index: " + index)
 		// this logic is so hairy..
 		var newArgs = args
 		
@@ -596,9 +597,11 @@ function Brick(args) {
 		newArgs.length = lengthOfNewBrick
 		newArgs.blocks = blocks.splice(index + 1, lengthOfNewBrick)
 		
+		// we just split this block but we don't want it to still think it's split
+		self.container.splitPoint = undefined
 		
 		var newBrick = new Brick(newArgs)
-		log(newBrick)
+		// log(newBrick)
 		newBrick.container.origin = globalOrigin
 		
 		newBrick.setDragDidBeginHandler(self.dragDidBeginHandler)
@@ -735,21 +738,15 @@ function makeSplitter() {
 			if (didSplit) {
 				var newBrick = allBricks[brickIndex].splitAtIndex(blockContainer.splitPoint)
 				allBricks.push(newBrick)
+				// log(allBricks)
 			}
 			
 			allBricks[brickIndex].layoutBlocks({animated: true})
-			
-			// // reposition the remaining blocks
-			// for (let blockIndex = 0; blockIndex < blocks.length; blockIndex++) {
-			// 	const splitAmount = didSplit ? 50 : 0
-			// 	blocks[blockIndex].animators.position.target = new Point({x: blockIndex * (blockWidth + lineWidth) + (blockIndex <= blockContainer.splitPoint ? -splitAmount : splitAmount) + blockWidth / 2.0, y: blockWidth / 2.0})
-			// }
 			
 
 			if (didSplit) {
 				scissorsContainer.animators.y.target = blockContainer.frameMaxY + 110
 			}
-			blockContainer.isSplit = didSplit
 		}
 	}
 
