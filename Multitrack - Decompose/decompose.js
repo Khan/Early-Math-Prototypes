@@ -80,6 +80,7 @@ dogTrack.moveToHorizontalCenterOfParentLayer()
 dogTrack.moveBelowSiblingLayer({siblingLayer: beeTrack})
 
 var toolbox = makeToolbox()
+splitter.comeToFront()
 
 function makeSoundtrackLayer(args) {
 	var layer = new Layer()
@@ -433,7 +434,7 @@ function makeBricks(args) {
 	var origin = args.origin
 
 	var brick = new Brick({
-		length: 4,
+		length: 9,
 		color: color,
 		size: blockSettings.size,
 		cornerRadius: blockSettings.cornerRadius
@@ -527,18 +528,26 @@ function Brick(args) {
 		container.origin = origin
 	}
 	
-	this.layoutBlocks = function() {
+	this.layoutBlocks = function(args) {
+		var animated = args ? args.animated : false
+		
 		var maxX = 0
 		for (var index = 0; index < self.length(); index++) {
 
 			var block = blocks[index]
-			log(block)
+			console.log(block)
+			log(block)// there's some kind of bug revealed here, something about a cyclic relationship
+			
 			block.parent = container
 			
-			block.originX = maxX + 2
-			block.originY = 0
+			var origin = new Point({x: maxX + 2, y: 0})
+			if (animated) {
+				block.animators.origin.target = origin
+			} else {
+				block.origin = origin
+			}
 
-			maxX = block.frameMaxX
+			maxX += block.width + 2
 		}
 		
 	}
@@ -572,16 +581,19 @@ function Brick(args) {
 	
 	/** Split this brick at the index point. Creates a new brick and moves the blocks after the split into the new brick. Returns the new brick. */
 	this.splitAtIndex = function(index) {
+		
+		// this logic is so hairy..
 		var newArgs = args
+		
+		var firstBlockAfterSplit = blocks[index+1]
+		var globalOrigin = firstBlockAfterSplit.parent.convertLocalPointToGlobalPoint(firstBlockAfterSplit.origin)
+		
 		
 		// split the blocks apart given the index. index is the block *before* the split.
 		var lengthOfNewBrick = self.length() - (index + 1)
 		newArgs.length = lengthOfNewBrick
 		newArgs.blocks = blocks.splice(index + 1, lengthOfNewBrick)
 		
-		var firstBlockAfterSplit = blocks[index]
-		var originOfFirstBlockAfterSplit = firstBlockAfterSplit.origin
-		var globalOrigin = firstBlockAfterSplit.convertLocalPointToGlobalPoint(originOfFirstBlockAfterSplit).add(new Point({x: 43, y: 0}))
 		
 		var newBrick = new Brick(newArgs)
 		log(newBrick)
@@ -637,8 +649,8 @@ function Brick(args) {
 function makeSplitter() {
 	// Have to put the scissors in a container because touches don't yet work on shapes! Yuuuuuuck.
 	let scissorsContainer = new Layer()
-	scissorsContainer.backgroundColor = Color.purple
 	let scissors = new ShapeLayer({parent: scissorsContainer})
+	
 	scissors.segments = [
 		new Segment(new Point({x: 25, y: 0})),
 		new Segment(new Point({x: 0, y: 100})),
@@ -664,6 +676,7 @@ function makeSplitter() {
 	const lineWidth = 2
 	
 	scissorsContainer.touchMovedHandler = touchSequence => {
+		scissorsContainer.comeToFront()
 		scissorsContainer.position = scissorsContainer.position.add(touchSequence.currentSample.globalLocation.subtract(touchSequence.previousSample.globalLocation))
 
 
@@ -671,8 +684,10 @@ function makeSplitter() {
 			var brick = allBricks[brickIndex]
 			var blockContainer = brick.container
 			var blocks = brick.blocks
-			if (blocks.length <= 1) { return }
-			if (brick.dropped) { return }
+			
+			// bailure cases
+			if (blocks.length <= 1) { continue }
+			if (brick.dropped) { continue }
 			
 			const containerLocation = blockContainer.convertGlobalPointToLocalPoint(new Point({x: scissorsContainer.x, y: scissorsContainer.originY}))
 			
@@ -710,7 +725,7 @@ function makeSplitter() {
 			var blockContainer = allBricks[brickIndex].container
 			var blocks = allBricks[brickIndex].blocks
 			
-			if (blocks.length <= 1) { return }
+			if (blocks.length <= 1) { continue }
 			
 
 			const didSplit = blockContainer.splitPoint !== undefined
@@ -718,9 +733,16 @@ function makeSplitter() {
 			if (didSplit) {
 				var newBrick = allBricks[brickIndex].splitAtIndex(blockContainer.splitPoint)
 				allBricks.push(newBrick)
-			} else {
-				// reposition the blocks?
 			}
+			
+			allBricks[brickIndex].layoutBlocks({animated: true})
+			
+			// // reposition the remaining blocks
+			// for (let blockIndex = 0; blockIndex < blocks.length; blockIndex++) {
+			// 	const splitAmount = didSplit ? 50 : 0
+			// 	blocks[blockIndex].animators.position.target = new Point({x: blockIndex * (blockWidth + lineWidth) + (blockIndex <= blockContainer.splitPoint ? -splitAmount : splitAmount) + blockWidth / 2.0, y: blockWidth / 2.0})
+			// }
+			
 
 			if (didSplit) {
 				scissorsContainer.animators.y.target = blockContainer.frameMaxY + 110
