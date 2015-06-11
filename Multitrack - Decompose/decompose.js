@@ -7,8 +7,8 @@ if (Layer.root.width != 1024) {
 }
 
 // Global sound switch: disable to avoid annoyance during development!
-var soundEnabled = false
-var tickEnabled = false // controls the ticking sound and appearance
+var soundEnabled = true
+var tickEnabled = true // controls the ticking sound and appearance
 if (!soundEnabled) { Sound.prototype.play = function() {} }
 
 var blockSettings = {
