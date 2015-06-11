@@ -21,6 +21,10 @@ var blockColors = {
 	orange: new Color({hex: "EFAC5F"})
 }
 
+// hack to check against these values later
+blockColors.blue.name = "blue"
+blockColors.orange.name = "orange"
+
 
 
 // the starting index and track, if any, of slots under a brick being dragged.
@@ -41,17 +45,20 @@ var firstSlot = undefined
 
 var kittyTrack =  makeSoundtrackLayer({
 	name: "kitty",
-	sound: "cat_a"
+	blueSound: "cat_a",
+	orangeSound: "cat_b"
 })
 
 var beeTrack = makeSoundtrackLayer({
 	name: "bee",
-	sound: "dog_e" // get it...dog-e
+	blueSound: "dog_b",
+	orangeSound: "dog_e"
 })
 
 var dogTrack = makeSoundtrackLayer({
 	name: "dog",
-	sound: "dog_e8"// get it...dog-e-8
+	blueSound: "dog_fsharp",
+	orangeSound: "dog_gsharp"
 })
 
 var trackLayers = [kittyTrack, beeTrack, dogTrack]
@@ -127,7 +134,8 @@ function makeSoundtrackLayer(args) {
 	layer.track = track
 	layer.imageLayer = imageLayer
 
-	var sound = new Sound({name: args.sound})
+	var blueSound = new Sound({name: args.blueSound})
+	var orangeSound = new Sound({name: args.orangeSound})
 
 	layer.makeSlotsUnswell = function() {
 		track.makeSlotsUnswell()
@@ -138,7 +146,11 @@ function makeSoundtrackLayer(args) {
 	}
 
 	layer.playSoundForSlotAtIndex = function(index) {
-		sound.play()
+		if (track.slotAtIndex(index).block.name == "blue") {
+			blueSound.play()
+		} else {
+			orangeSound.play()
+		}
 	}
 
 	layer.updateSlotsFor = function(args) {
@@ -170,7 +182,8 @@ function makeTrackNotesLayer() {
 	}
 
 	trackNotesLayer.size = new Size({width: maxX, height: trackNotesLayer.noteSlots[0].height})
-
+	
+	trackNotesLayer.slotAtIndex = function(index) { return trackNotesLayer.noteSlots[index] }
 
 	trackNotesLayer.makeSlotsUnswell = function() {
 		for (var index = 0; index < trackNotesLayer.noteSlots.length; index++) {
@@ -279,6 +292,7 @@ function makeNoteSlot() {
 		slot.block.slot = undefined
 		slot.block = undefined
 	}
+	
 	
 	if (firstSlot === undefined) {
 		firstSlot = slot
@@ -522,6 +536,7 @@ function Brick(args) {
 	var color = args.color
 	var size = args.size ? args.size : 50
 	var cornerRadius = args.cornerRadius ? args.cornerRadius : 8
+	var name = color.name ? color.name : "block"
 
 	// It doesn't really make sense to make a brick of 0 blocks, does it?
 	if (length < 1) { return }
@@ -595,7 +610,7 @@ function Brick(args) {
 		var cornerRadius = args.cornerRadius
 
 		var rect = new Rect({x: 50, y: 50, width: size, height: size})
-		var block = new Layer({name: "block"})
+		var block = new Layer({name: name})
 		block.frame = rect
 		block.cornerRadius = cornerRadius
 
