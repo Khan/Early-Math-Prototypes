@@ -40,8 +40,8 @@ var charLayer = new Layer({parent: charParentLayer, imageName: charLayerName})
 charParentLayer.x = 170
 charParentLayer.y = 555
 
-//setting up a basic tap to move character test with basic touch handlers
-touchCatchingLayer.touchBeganHandler = function(touchSequence) {
+//setting up a basic tap to parallax test with basic touch handler
+touchCatchingLayer.touchBeganHandler = function(touchSequence) { 
  
 	let i = 0;
 	for (let layerIndex in bgParentLayer.sublayers) {
