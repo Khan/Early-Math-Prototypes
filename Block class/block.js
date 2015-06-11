@@ -11,10 +11,16 @@
 /** 
 	Create a brick with the given arguments object. Valid arguments are:
 
-	length: how many blocks are in this brick?
+	length: how many blocks are in this brick? Must be >= 1.
+	isUnified: a boolean to indicate if the brick looks like one unified brick or individual blocks in a row. defaults to blocks in a row if you don't specify.
+	
 	color: what colour are the blocks?
+	borderColor: what colour is the border? will use `color` if none is provided.
+	borderWidth: defaults to 0 if you don't provide one.
+	
 	size: how big is each block? defaults to 50 if you don't provide one. (note: this is just one number because blocks are square)
 	cornerRadius: defaults to 8 if you don't provide one.
+	
 	blocks: an array of existing blocks. defaults to undefined, in that case blocks are generated. If you provide your own, those blocks are used instead.
 
 	The returned brick already has drag and drop enabled and will do the right thing to stay under the finger as it is dragged.
@@ -22,8 +28,14 @@
 	You can optionally provide a dragDidBeginHandler, dragDidMoveHandler, and/or a dragDidEndHandler to get a callback on those events to do whatever you please. For example, you might want to check if the brick was dropped in a certain location.
 */
 function Brick(args) {
+	
 	var length = args.length
+	var isUnified = args.isUnified ? args.isUnified : false
+	
 	var color = args.color
+	var borderColor = args.borderColor ? args.borderColor : color
+	var borderWidth = args.borderWidth ? args.borderWidth : 0
+	
 	var size = args.size ? args.size : 50
 	var cornerRadius = args.cornerRadius ? args.cornerRadius : 8
 
@@ -36,6 +48,11 @@ function Brick(args) {
 	
 	
 	var container = new Layer({name: "brick"})
+	if (isUnified) {
+		container.backgroundColor = color
+		container.cornerRadius = cornerRadius
+		container.border = new Border({width: borderWidth, color: borderColor})
+	}
 	var blocks = args.blocks || []
 	
 	
@@ -82,6 +99,16 @@ function Brick(args) {
 				block.animators.position.stop()
 				block.origin = origin
 			}
+			
+			
+			if (isUnified) {
+				var line = block.lineLayer
+				line.width = borderWidth
+				line.height = block.height
+
+				line.originY = 0
+				line.moveToRightSideOfParentLayer()
+			}
 
 			maxX += block.width + 2
 		}
@@ -96,14 +123,23 @@ function Brick(args) {
 	function makeBlock(args) {
 		var color = args.color
 		var size = args.size
-		var cornerRadius = args.cornerRadius
-
+		var cornerRadius = isUnified ? 0 : args.cornerRadius
+		
 		var rect = new Rect({x: 50, y: 50, width: size, height: size})
 		var block = new Layer({name: "block"})
 		block.frame = rect
+		
+		if (isUnified) {
+			// each block has a line layer, positioned in layoutBlocks
+			var lineLayer = new Layer({parent: block})
+			lineLayer.backgroundColor = borderColor
+			block.lineLayer = lineLayer
+		} else {
+			block.border = new Border({color: borderColor, width: borderWidth})
+		}
 		block.cornerRadius = cornerRadius
 
-		block.backgroundColor = color
+		// block.backgroundColor = color
 
 
 		return block
