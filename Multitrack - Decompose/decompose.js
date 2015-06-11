@@ -16,6 +16,12 @@ var blockSettings = {
 	cornerRadius: 22.5
 }
 
+var blockColors = {
+	blue: new Color({hex: "59C4DD"}),
+	orange: new Color({hex: "EFAC5F"})
+}
+
+
 
 // the starting index and track, if any, of slots under a brick being dragged.
 var dropTarget = undefined
@@ -28,6 +34,9 @@ var firstTrackSlotX = 80
 
 // Contains all the bricks in the scene.
 var allBricks = []
+
+// hack to keep track of the first slot
+var firstSlot = undefined
 
 
 var kittyTrack =  makeSoundtrackLayer({
@@ -49,7 +58,7 @@ var trackLayers = [kittyTrack, beeTrack, dogTrack]
 
 
 var splitter = makeSplitter()
-splitter.moveToCenterOfParentLayer()
+
 
 
 function columnIsFull(index) {
@@ -85,6 +94,22 @@ var toolbox = makeToolbox()
 splitter.position = toolbox.position
 splitter.x = 85
 splitter.comeToFront()
+
+
+// make one brick and add it to a track to see an example so people will know what to do
+var blueOriginX = 0
+var blueOriginY = 0
+
+var exampleBrick = makeBricks({
+	color: blockColors.blue, 
+	origin: new Point({x: blueOriginX, y: blueOriginY}),
+	length: 1
+})
+
+allBricks.push(exampleBrick)
+exampleBrick.container.position = firstSlot.globalPosition
+updateSlotsForBrick(exampleBrick)
+dropBrick(exampleBrick)
 
 function makeSoundtrackLayer(args) {
 	var layer = new Layer()
@@ -254,6 +279,10 @@ function makeNoteSlot() {
 		slot.block.slot = undefined
 		slot.block = undefined
 	}
+	
+	if (firstSlot === undefined) {
+		firstSlot = slot
+	}
 	return slot
 }
 
@@ -274,10 +303,6 @@ function makeToolbox() {
 	layer.backgroundColor = new Color({white: 0.92})
 	layer.cornerRadius = 25
 
-	var blockColors = {
-		blue: new Color({hex: "59C4DD"}),
-		orange: new Color({hex: "EFAC5F"})
-	}
 	
 	var blueOriginX = 160
 	var blueOriginY = 560
@@ -307,7 +332,7 @@ function updateSlotsForBrick(brick) {
 		}
 
 		track.updateSlotsFor({
-			brickOfLength: brick.blocks.length, 
+			brickOfLength: brick.length(), 
 			startingAtGlobalPoint: brick.blocks[0].globalPosition
 		})
 	}
@@ -437,9 +462,10 @@ Layer.root.behaviors = [
 function makeBricks(args) {
 	var color = args.color
 	var origin = args.origin
+	var length = args.length ? args.length : 9
 
 	var brick = new Brick({
-		length: 9,
+		length: length,
 		color: color,
 		size: blockSettings.size,
 		cornerRadius: blockSettings.cornerRadius
