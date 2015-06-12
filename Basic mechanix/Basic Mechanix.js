@@ -40,6 +40,22 @@ var charLayer = new Layer({parent: charParentLayer, imageName: charLayerName})
 charParentLayer.x = 170
 charParentLayer.y = 555
 
+
+// I put this layer here so I could test adding blocks with the touch handler
+var lightPurple = "9A72AC"
+var darkPurple = "644172"
+
+var purpleBrick = new Brick({
+	length: 5,
+	isUnified: true,
+	isEmpty: true,
+	size: 30,
+	color: new Color({hex: lightPurple}),
+	borderColor: new Color({hex: darkPurple}),
+	borderWidth: 1,
+	cornerRadius: 4
+})
+
 //setting up a basic tap to parallax test with basic touch handler
 touchCatchingLayer.touchBeganHandler = function(touchSequence) { 
  
@@ -50,6 +66,7 @@ touchCatchingLayer.touchBeganHandler = function(touchSequence) {
 		i++ 
 	}
 
+	purpleBrick.animateInNextBlock()
 
 }
 
@@ -81,15 +98,24 @@ var greenBrick = new Brick({
 	cornerRadius: 4
 })
 
+
+
+var lightRed = "F16257"
+var darkRed = "C13B32"
+
 orangeBrick.container.moveToCenterOfParentLayer()
 greenBrick.container.moveToCenterOfParentLayer()
 greenBrick.container.moveAboveSiblingLayer({siblingLayer: orangeBrick.container})
+
+purpleBrick.container.moveToCenterOfParentLayer()
+purpleBrick.container.moveBelowSiblingLayer({siblingLayer: orangeBrick.container})
 
 /** 
 	Create a brick with the given arguments object. Valid arguments are:
 
 	length: how many blocks are in this brick? Must be >= 1.
 	isUnified: a boolean to indicate if the brick looks like one unified brick or individual blocks in a row. defaults to blocks in a row if you don't specify.
+	isEmpty: a boolean to indicate if the brick starts "empty" (all its blocks are clear and just have dashed outline). Use this for gathering. If not specified, it defaults to false.
 	
 	color: what colour are the blocks?
 	borderColor: what colour is the border? will use `color` if none is provided.
@@ -111,6 +137,7 @@ function Brick(args) {
 	
 	var length = args.length
 	var isUnified = args.isUnified ? args.isUnified : false
+	var isEmpty = args.isEmpty ? args.isEmpty : false
 	
 	var color = args.color
 	var borderColor = args.borderColor ? args.borderColor : color
@@ -130,7 +157,7 @@ function Brick(args) {
 	
 	var container = new Layer({name: "brick"})
 	if (isUnified) {
-		container.backgroundColor = color
+		container.backgroundColor = isEmpty ? Color.clear : color
 		container.cornerRadius = cornerRadius
 		container.border = new Border({width: borderWidth, color: borderColor})
 	}
@@ -237,7 +264,7 @@ function Brick(args) {
 		}
 		block.cornerRadius = cornerRadius
 
-		block.backgroundColor = color
+		block.backgroundColor = isEmpty ? Color.clear : color
 
 
 		return block
@@ -281,6 +308,50 @@ function Brick(args) {
 		
 		
 		return newBrick
+	}
+	
+	
+	var nextBlockIndex = 0
+	this.animateInNextBlock = function() {
+		if (nextBlockIndex >= self.length()) { return }
+		
+		var block = self.blocks[nextBlockIndex]
+	
+		// TODO: let the blocks have a dashed border...I'll have to make them shapelayers, but then they lose touch handling?
+		block.backgroundColor = color
+		// block.fillColor = block.strokeColor
+		// block.dashLength = undefined
+		
+		
+		block.animators.scale.target = new Point({x: 1, y: 1})
+		var velocity = 4
+		block.animators.scale.velocity = new Point({x: velocity, y: velocity})
+		
+		nextBlockIndex++
+		
+		
+		var index = nextBlockIndex - 1
+		var allFlowersCompleted = index + 1 == length
+		
+		// numbersToSounds[index].play()
+		
+		// This should really happen in the "afterDuration" call below, but it seems I can use an animator in that?
+		if (allFlowersCompleted) {
+			container.animators.scale.target = new Point({x: 1, y: 1})
+			container.animators.scale.velocity = new Point({x: velocity * 4, y: velocity * 4})
+			
+		}
+		
+		// TODO: add back sounds
+		// afterDuration(0.5, function() {
+		// 	flowerSounds[index + 1 == 1 ? 0 : 1].play()
+		// 	if (allFlowersCompleted) {
+		// 		// we've shown all the blocks, play success!
+		// 		afterDuration(0.5, function() {
+		// 			successSound.play()
+		// 		})
+		// 	}
+		// })
 	}
 
 
