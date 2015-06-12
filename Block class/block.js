@@ -19,6 +19,7 @@
 	borderWidth: defaults to 0 if you don't provide one.
 	
 	size: how big is each block? defaults to 50 if you don't provide one. (note: this is just one number because blocks are square)
+	isVertical: is the brick vertical? if false/unspecified, defaults to horizontal
 	cornerRadius: defaults to 8 if you don't provide one.
 	
 	blocks: an array of existing blocks. defaults to undefined, in that case blocks are generated. If you provide your own, those blocks are used instead.
@@ -26,6 +27,8 @@
 	The returned brick already has drag and drop enabled and will do the right thing to stay under the finger as it is dragged.
 
 	You can optionally provide a dragDidBeginHandler, dragDidMoveHandler, and/or a dragDidEndHandler to get a callback on those events to do whatever you please. For example, you might want to check if the brick was dropped in a certain location.
+	
+	NOTE: The returned Brick object is *not* a Layer itself, but it *has* a layer you can access with `.container` property. So if you need to treat a brick like a layer, you've first got to ask it for its container and then work with that. I don't know how to javascript this better.
 */
 function Brick(args) {
 	
@@ -37,6 +40,7 @@ function Brick(args) {
 	var borderWidth = args.borderWidth ? args.borderWidth : 0
 	
 	var size = args.size ? args.size : 50
+	var isVertical = args.isVertical ? args.isVertical : false
 	var cornerRadius = args.cornerRadius ? args.cornerRadius : 8
 
 	// It doesn't really make sense to make a brick of 0 blocks, does it?
@@ -75,23 +79,36 @@ function Brick(args) {
 	/** Gets the number of blocks in this brick. Use this over the local variable length because it might get outdated. */
 	this.length = function() { return blocks.length }
 	
+	var blockMargin = isUnified ? 0 : 2
 	this.resizeBrickToFitBlocks = function() {
 		var origin = container.origin
-		container.size = new Size({width: (size + 2) * self.length(), height: size})
+		
+		var longSide = size * self.length() + (self.length() - 1) * blockMargin
+		var shortSide = size
+		
+		var width = isVertical ? shortSide : longSide
+		var height = isVertical ? longSide : shortSide
+		
+	
+		container.size = new Size({width: width, height: height})
 		container.origin = origin
 	}
 	
 	this.layoutBlocks = function(args) {
 		var animated = args ? args.animated : false
 		
-		var maxX = 0
+		var max = 0
 		for (var index = 0; index < self.length(); index++) {
 
 			var block = blocks[index]
 			
 			block.parent = container
 			
-			var origin = new Point({x: maxX + 2, y: 0})
+			var x = isVertical ? 0: max + blockMargin
+			var y = isVertical ? max + blockMargin : 0
+			
+			
+			var origin = new Point({x: x, y: y})
 			if (animated) {
 				block.animators.origin.target = origin
 			} else {
@@ -103,14 +120,21 @@ function Brick(args) {
 			
 			if (isUnified) {
 				var line = block.lineLayer
-				line.width = borderWidth
-				line.height = block.height
+				line.width = isVertical ? block.width : borderWidth
+				line.height = isVertical ? borderWidth : block.height
 
 				line.originY = 0
-				line.moveToRightSideOfParentLayer()
+				if (isVertical) {
+					// line.originY = borderWidth
+					line.originX = 0
+					// line.moveToTopSideOfParentLayer()
+					// line.moveToCenterOfParentLayer()
+				} else {
+					line.moveToRightSideOfParentLayer()
+				}
 			}
 
-			maxX += block.width + 2
+			max += block.width + blockMargin
 		}
 		
 	}
@@ -139,7 +163,7 @@ function Brick(args) {
 		}
 		block.cornerRadius = cornerRadius
 
-		// block.backgroundColor = color
+		block.backgroundColor = color
 
 
 		return block
