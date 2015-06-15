@@ -2,8 +2,8 @@
 
 var numberOfPetals = 10
 var stemSize = new Size({width: 30, height: 400})
-var eyeRadius = 200
-var petalRadius = 80
+var eyeRadius = 100
+var petalRadius = 40
 
 
 Layer.root.image = new Image({name: "flowers"})
