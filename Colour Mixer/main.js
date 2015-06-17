@@ -23,17 +23,17 @@ var color = {
 /** Get the current colour to be used as output. */
 function currentColor() {
 	const maxColor = Math.max(color.red, color.yellow, color.blue)
-	const normalizedRYB = [color.red / maxColor * 255, color.yellow / maxColor * 255, color.blue / maxColor * 255]
-	const rgbValues = ryb2rgb(normalizedRYB)
-	return new Color({red: rgbValues[0] / 255, green: rgbValues[1] / 255, blue: rgbValues[2] / 255})
+	const normalizedCMY = [color.red / maxColor, color.yellow / maxColor, color.blue / maxColor, 0.0]
+	const rgbValues = cmyk2rgb(normalizedCMY)
+	return new Color({red: rgbValues[0], green: rgbValues[1], blue: rgbValues[2]})
 }
 
 
 /** Colours used in the interface. */
 var colorConstants = {
-	red: new Color({hex: "ff0000"}),
-	yellow: new Color({hex: "ffff00"}),
-	blue: new Color({red: 0.163, green: 0.363, blue: 0.6}),
+	red: new Color({hex: "00ffff"}),
+	yellow: new Color({hex: "ff00ff"}),
+	blue: new Color({hex: "ffff00"}),
 	grey: new Color({hex: "EEEEEE"})
 }
 
@@ -402,6 +402,14 @@ var MAGIC_COLORS = [
 [0.5,   0.0,   0.5],
 [0.2,   0.094, 0.0]
 ];
+
+var cmyk2rgb = function(color) {
+	return [
+	(1 - color[0]) * (1 - color[3]),
+	(1 - color[1]) * (1 - color[3]),
+	(1 - color[2]) * (1 - color[3])
+	]
+}
 
 var ryb2rgb = (function() {
     // see http://threekings.tk/mirror/ryb_TR.pdf
