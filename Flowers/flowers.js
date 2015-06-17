@@ -1,6 +1,6 @@
 
 
-var numberOfPetals = 10
+var numberOfPetals = 17
 var stemSize = new Size({width: 30, height: 400})
 var eyeRadius = 100
 var petalRadius = 40
