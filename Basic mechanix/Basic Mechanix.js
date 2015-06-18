@@ -20,7 +20,6 @@ const numCharLayers = 1;
 Layer.root.backgroundColor = new Color({hue: 0.52, saturation: 0.17, brightness: 0.94})
 
 
-
 //set up BG layers
 var bgParentLayer = new Layer({name:"bgParent"}) 
 for (let i = numFirstBGLayer; i < numFirstBGLayer+numBGLayers; i++) {
@@ -30,12 +29,11 @@ for (let i = numFirstBGLayer; i < numFirstBGLayer+numBGLayers; i++) {
 	bgLayer.y = bgLayer.height/2
 }
 
-const touchCatchingLayer = new Layer()
-touchCatchingLayer.frame = Layer.root.bounds
+const foregroundLayer = bgParentLayer.sublayers[bgParentLayer.sublayers.length - 1]
 
 //set up initial character layer (no static animation yet. eventually: at least blinking!)
 const charLayerName = strCharLayer + numFirstCharLayer
-var charParentLayer = new Layer({name:"charParent"}) 
+var charParentLayer = new Layer({name:"charParent", parent: foregroundLayer}) 
 var charLayer = new Layer({parent: charParentLayer, imageName: charLayerName})
 charLayer.origin = Point.zero
 charParentLayer.size = charLayer.size
@@ -43,54 +41,56 @@ charParentLayer.x = 170
 charParentLayer.y = 555
 
 
-// I put this layer here so I could test adding blocks with the touch handler
-var lightPurple = "9A72AC"
-var darkPurple = "644172"
-
-var purpleBrick = new Brick({
-	length: 5,
-	isUnified: true,
-	isEmpty: true,
-	size: 30,
-	color: new Color({hex: lightPurple}),
-	borderColor: new Color({hex: darkPurple}),
-	borderWidth: 1,
-	cornerRadius: 4
-})
-
 let characterTargetX = charParentLayer.x
 let cameraOriginX = 0
 let characterStepSize = 0 // starts at 0, smoothly accelerates up to a maximum
 
 //setting up a basic tap to parallax test with basic touch handler
-touchCatchingLayer.touchBeganHandler = function(touchSequence) { 
-	characterTargetX = touchSequence.currentSample.globalLocation.x
+Layer.root.touchBeganHandler = function(touchSequence) { 
+	characterTargetX = touchSequence.currentSample.locationInLayer(charParentLayer.parent).x
 }
 
 Layer.root.behaviors = [
 	new ActionBehavior({handler: () => {
+		// Camera and player movement!
 
-		const cameraEdgeFraction = 0.6
-		const cameraEdgeSmoothingSizeFraction = 0.07
-		const maximumCameraSpeed = 2
-		const cameraEdge = Layer.root.width * (cameraEdgeFraction - cameraEdgeSmoothingSizeFraction)
-		const cameraDelta = charParentLayer.x - cameraEdge
-		const cameraSpeed = clip({
-			value: map({value: cameraDelta, fromInterval: [0, Layer.root.width * cameraEdgeSmoothingSizeFraction], toInterval: [0, maximumCameraSpeed]}),
+		const cameraEdgeFraction = 0.6 // in unit screen space, how far along the screen is the line where the camera moves at the same speed as the player?
+		const cameraEdgeSmoothingSizeFraction = 0.07 // in unit screen space, how wide is the region before cameraEdgeFraction where the camera accelerates?
+		const maximumStepSize = 4 // the maximum speed (pts/frame) at which the player can move
+		const maximumCameraSpeed = maximumStepSize // pts/frame
+		const minimumCameraSpeed = 1 // pts/frame
+
+		// First, we'll move the camera.
+		// Look at the right edge first. How near are we to the line? Map that nearness to the camera speed, ramping up over the smoothing region.
+		const cameraRightDelta = charParentLayer.globalPosition.x - Layer.root.width * cameraEdgeFraction
+		let cameraSpeed = clip({
+			value: map({value: cameraRightDelta, fromInterval: [-Layer.root.width * cameraEdgeSmoothingSizeFraction, 0], toInterval: [0, maximumCameraSpeed]}),
 			min: 0,
 			max: maximumCameraSpeed
 		})
-		if (cameraDelta > 1) {
-			let i = 0;
-			for (let layerIndex in bgParentLayer.sublayers) {
-				const layer = bgParentLayer.sublayers[layerIndex]
-				layer.x = layer.x - (cameraSpeed * (i+1)); 
-				i++ 
-			}
-			charParentLayer.x = Math.min(charParentLayer.x, Layer.root.width * cameraEdgeFraction)
+		if (cameraSpeed === 0) {
+			// Try the left edge.
+			const cameraLeftDelta = Layer.root.width * (1.0 - cameraEdgeFraction) - charParentLayer.globalPosition.x
+			cameraSpeed = clip({
+				value: map({value: cameraLeftDelta, fromInterval: [-Layer.root.width * cameraEdgeSmoothingSizeFraction, 0], toInterval: [0, -maximumCameraSpeed]}),
+				min: -maximumCameraSpeed,
+				max: 0
+			})
 		}
 
-		const maximumStepSize = 5
+		// If the camera's moving (and has room to move)...
+		if (Math.abs(cameraSpeed) >= 1 && (cameraSpeed > 0 || foregroundLayer.originX < 0)) {
+			let i = 0;
+			for (var layerIndex = 0; layerIndex < bgParentLayer.sublayers.length; layerIndex++) {
+				const layer = bgParentLayer.sublayers[layerIndex]
+				// Closer planes move the most; further-back planes move the least.
+				var planeMovement = map({value: layerIndex, fromInterval: [0, bgParentLayer.sublayers.length - 1], toInterval: [Math.sign(cameraSpeed) * 1, cameraSpeed]})
+				layer.x = layer.x - planeMovement
+				i++ 
+			}
+		}
+
+		// Move the character towards its target.
 		const dx = characterTargetX - charParentLayer.x
 		if (Math.abs(dx) > maximumStepSize) {
 			characterStepSize = clip({value: characterStepSize + Math.sign(dx), min: -maximumStepSize, max: maximumStepSize})
@@ -103,40 +103,6 @@ Layer.root.behaviors = [
 //-------------------------------------------------
 // Bricks
 //-------------------------------------------------
-
-var orangeBrick = new Brick({
-	length: 5,
-	isUnified: true,
-	size: 30,
-	color: new Color({hex: "EFAC5E"}),
-	borderColor: new Color({hex: "BF7C35"}),
-	borderWidth: 1,
-	cornerRadius: 4
-})
-
-
-var greenBrick = new Brick({
-	length: 4,
-	isUnified: true,
-	size: 30,
-	isVertical: true,
-	color: new Color({hex: "A6CF8B"}),
-	borderColor: new Color({hex: "53893E"}),
-	borderWidth: 1,
-	cornerRadius: 4
-})
-
-
-
-var lightRed = "F16257"
-var darkRed = "C13B32"
-
-orangeBrick.container.moveToCenterOfParentLayer()
-greenBrick.container.moveToCenterOfParentLayer()
-greenBrick.container.moveAboveSiblingLayer({siblingLayer: orangeBrick.container})
-
-purpleBrick.container.moveToCenterOfParentLayer()
-purpleBrick.container.moveBelowSiblingLayer({siblingLayer: orangeBrick.container})
 
 /** 
 	Create a brick with the given arguments object. Valid arguments are:
