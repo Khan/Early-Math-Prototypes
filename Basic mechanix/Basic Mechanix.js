@@ -60,18 +60,21 @@ var purpleBrick = new Brick({
 
 let characterTargetX = charParentLayer.x
 let cameraOriginX = 0
+let characterStepSize = 0 // starts at 0, smoothly accelerates up to a maximum
 
 //setting up a basic tap to parallax test with basic touch handler
 touchCatchingLayer.touchBeganHandler = function(touchSequence) { 
 	characterTargetX = touchSequence.currentSample.globalLocation.x
 }
 
+
 Layer.root.behaviors = [
 	new ActionBehavior({handler: () => {
-		const stepSize = 5
+		const maximumStepSize = 5
 		const dx = characterTargetX - charParentLayer.x
-		if (Math.abs(dx) > stepSize) {
-			charParentLayer.x += Math.sign(dx) * stepSize
+		if (Math.abs(dx) > maximumStepSize) {
+			characterStepSize = clip({value: characterStepSize + Math.sign(dx), min: -maximumStepSize, max: maximumStepSize})
+			charParentLayer.x += characterStepSize
 			charLayer.scaleX = dx > 0 ? 1 : -1
 		}
 	}})
