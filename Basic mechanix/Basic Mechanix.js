@@ -67,9 +67,29 @@ touchCatchingLayer.touchBeganHandler = function(touchSequence) {
 	characterTargetX = touchSequence.currentSample.globalLocation.x
 }
 
-
 Layer.root.behaviors = [
 	new ActionBehavior({handler: () => {
+
+		const cameraEdgeFraction = 0.6
+		const cameraEdgeSmoothingSizeFraction = 0.07
+		const maximumCameraSpeed = 2
+		const cameraEdge = Layer.root.width * (cameraEdgeFraction - cameraEdgeSmoothingSizeFraction)
+		const cameraDelta = charParentLayer.x - cameraEdge
+		const cameraSpeed = clip({
+			value: map({value: cameraDelta, fromInterval: [0, Layer.root.width * cameraEdgeSmoothingSizeFraction], toInterval: [0, maximumCameraSpeed]}),
+			min: 0,
+			max: maximumCameraSpeed
+		})
+		if (cameraDelta > 1) {
+			let i = 0;
+			for (let layerIndex in bgParentLayer.sublayers) {
+				const layer = bgParentLayer.sublayers[layerIndex]
+				layer.x = layer.x - (cameraSpeed * (i+1)); 
+				i++ 
+			}
+			charParentLayer.x = Math.min(charParentLayer.x, Layer.root.width * cameraEdgeFraction)
+		}
+
 		const maximumStepSize = 5
 		const dx = characterTargetX - charParentLayer.x
 		if (Math.abs(dx) > maximumStepSize) {
