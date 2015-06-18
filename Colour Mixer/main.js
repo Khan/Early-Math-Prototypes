@@ -15,25 +15,22 @@ var mixer = new Layer()
 // This structure holds the numbers that make up the colour components.
 var color = {
 	red: 0.,
-	yellow: 0.,
+	green: 0.,
 	blue: 0.
 }
 
 
 /** Get the current colour to be used as output. */
 function currentColor() {
-	const maxColor = Math.max(color.red, color.yellow, color.blue)
-	const normalizedRYB = [color.red / maxColor * 255, color.yellow / maxColor * 255, color.blue / maxColor * 255]
-	const rgbValues = ryb2rgb(normalizedRYB)
-	return new Color({red: rgbValues[0] / 255, green: rgbValues[1] / 255, blue: rgbValues[2] / 255})
+	return new Color({red: color.red, green: color.green, blue: color.blue})
 }
 
 
 /** Colours used in the interface. */
 var colorConstants = {
-	red: new Color({hex: "ff0000"}),
-	yellow: new Color({hex: "ffff00"}),
-	blue: new Color({red: 0.163, green: 0.363, blue: 0.6}),
+	red: new Color({hex: "e65b4c"}),
+	green: new Color({hex: "83c066"}),
+	blue: new Color({hex: "29abca"}),
 	grey: new Color({hex: "EEEEEE"})
 }
 
@@ -159,20 +156,20 @@ function makeGrinder(args) {
 
 	function rotateColors() {
 		red.rotateBricks()
-		yellow.rotateBricks()
+		green.rotateBricks()
 		blue.rotateBricks()
 	}
 
 
 	function moveColors() {
 		red.moveToMixer()
-		yellow.moveToMixer()
+		green.moveToMixer()
 		blue.moveToMixer()
 	}
 
 	function dripColors() {
 		var bgColor = currentColor()
-		var totalCount = red.totalCount() + yellow.totalCount() + blue.totalCount()
+		var totalCount = red.totalCount() + green.totalCount() + blue.totalCount()
 		var totalDripDuration = 2 // seconds
 		var timeIntervalBetweenDrips = totalDripDuration / totalCount
 
@@ -192,7 +189,7 @@ function makeGrinder(args) {
 			})
 		}
 		red.removeAllBricks()
-		yellow.removeAllBricks()
+		green.removeAllBricks()
 		blue.removeAllBricks()
 	}
 
@@ -204,15 +201,16 @@ function makeGrinder(args) {
 // Setup everything else
 //----------------------------------------------------
 
+// Using RGB for now because modelling RYB on a computer seemed like a rabit hole not worth going down quite yet...
 var red = makeSquare(colorConstants.red, "red")
 var blue = makeSquare(colorConstants.blue, "blue")
-var yellow = makeSquare(colorConstants.yellow, "yellow")
+var green = makeSquare(colorConstants.green, "green")
 
-yellow.moveToHorizontalCenterOfParentLayer()
-red.moveToLeftOfSiblingLayer({siblingLayer: yellow, margin: 100})
-blue.moveToRightOfSiblingLayer({siblingLayer: yellow, margin: 100})
+green.moveToHorizontalCenterOfParentLayer()
+red.moveToLeftOfSiblingLayer({siblingLayer: green, margin: 100})
+blue.moveToRightOfSiblingLayer({siblingLayer: green, margin: 100})
 
-yellow.y = red.y = blue.y = 200
+green.y = red.y = blue.y = 200
 
 
 
@@ -223,15 +221,15 @@ mixer.moveToCenterOfParentLayer()
 mixer.updateBackgroundColor()
 
 var redPipe = makePipe("red")
-var yellowPipe = makePipe("yellow")
+var greenPipe = makePipe("green")
 var bluePipe = makePipe("blue")
 
 redPipe.x = red.x
-yellowPipe.x = yellow.x
+greenPipe.x = green.x
 bluePipe.x = blue.x
 
 redPipe.moveBelowSiblingLayer({siblingLayer: red, margin: -8})
-yellowPipe.moveBelowSiblingLayer({siblingLayer: yellow, margin: -8})
+greenPipe.moveBelowSiblingLayer({siblingLayer: green, margin: -8})
 bluePipe.moveBelowSiblingLayer({siblingLayer: blue, margin: -8})
 
 var tap = new Layer({imageName: "tap"})
@@ -259,16 +257,16 @@ var blockSize = 25
 for (var index = 0; index < 5; index++) {
 
 	var redBrick = makeBrick({length: index + 1, color: colorConstants.red, target: red})
-	var yellowBrick = makeBrick({length: index + 1, color: colorConstants.yellow, target: yellow})
+	var greenBrick = makeBrick({length: index + 1, color: colorConstants.green, target: green})
 	var blueBrick = makeBrick({length: index + 1, color: colorConstants.blue, target: blue})
 
 	redBrick.x = red.x
-	yellowBrick.x = yellow.x
+	greenBrick.x = green.x
 	blueBrick.x = blue.x
 
 	var originY = 600 + index * (blockSize + 10)
 	redBrick.originY = originY
-	yellowBrick.originY = originY
+	greenBrick.originY = originY
 	blueBrick.originY = originY
 }
 
@@ -376,90 +374,3 @@ function bringLayerToFront(layer) {
 function randomIntBetween(min, max) {
 	return Math.floor(Math.random() * (max - min + 1) + min)
 }
-
-
-// Adapted from https://github.com/bahamas10/ryb/blob/gh-pages/js/RXB.js#L252-L330
-// Implemented in JS by Dave Eddy <dave@daveeddy.com>
-// MIT License
-
-/**
-* ryb2rgb, the motherload, convert a RYB array to RGB
-*
-* @param ryb   {array} RYB values in the form of [0, 255, 0]
-* @param limit {int}   [optional] max value of the color, defaults to 255
-* @param magic {array} An array of magic colors to use in the color space interpolation
-*
-* returns an array of the RGB values
-*/
-
-var MAGIC_COLORS = [
-[1,     1,     1],
-[1,     1,     0],
-[1,     0,     0],
-[1,     0.5,   0],
-[0.163, 0.373, 0.6],
-[0.0,   0.66,  0.2],
-[0.5,   0.0,   0.5],
-[0.2,   0.094, 0.0]
-];
-
-var ryb2rgb = (function() {
-    // see http://threekings.tk/mirror/ryb_TR.pdf
-    function cubicInt(t, A, B){
-    	var weight = t * t * (3 - 2 * t);
-    	return A + weight * (B - A);
-    }
-
-    function getR(iR, iY, iB, magic) {
-    	magic = magic || MAGIC_COLORS;
-      // red
-      var x0 = cubicInt(iB, magic[0][0], magic[4][0]);
-      var x1 = cubicInt(iB, magic[1][0], magic[5][0]);
-      var x2 = cubicInt(iB, magic[2][0], magic[6][0]);
-      var x3 = cubicInt(iB, magic[3][0], magic[7][0]);
-      var y0 = cubicInt(iY, x0, x1);
-      var y1 = cubicInt(iY, x2, x3);
-      return cubicInt(iR, y0, y1);
-  }
-
-  function getG(iR, iY, iB, magic) {
-  	magic = magic || MAGIC_COLORS;
-      // green
-      var x0 = cubicInt(iB, magic[0][1], magic[4][1]);
-      var x1 = cubicInt(iB, magic[1][1], magic[5][1]);
-      var x2 = cubicInt(iB, magic[2][1], magic[6][1]);
-      var x3 = cubicInt(iB, magic[3][1], magic[7][1]);
-      var y0 = cubicInt(iY, x0, x1);
-      var y1 = cubicInt(iY, x2, x3);
-      return cubicInt(iR, y0, y1);
-  }
-
-  function getB(iR, iY, iB, magic) {
-  	magic = magic || MAGIC_COLORS;
-      // blue
-      var x0 = cubicInt(iB, magic[0][2], magic[4][2]);
-      var x1 = cubicInt(iB, magic[1][2], magic[5][2]);
-      var x2 = cubicInt(iB, magic[2][2], magic[6][2]);
-      var x3 = cubicInt(iB, magic[3][2], magic[7][2]);
-      var y0 = cubicInt(iY, x0, x1);
-      var y1 = cubicInt(iY, x2, x3);
-      return cubicInt(iR, y0, y1);
-  }
-
-  function ryb2rgb(color, limit, magic) {
-  	limit = limit || 255;
-  	magic = magic || MAGIC_COLORS;
-  	var R = color[0] / limit;
-  	var Y = color[1] / limit;
-  	var B = color[2] / limit;
-  	var R1 = getR(R, Y, B, magic);
-  	var G1 = getG(R, Y, B, magic);
-  	var B1 = getB(R, Y, B, magic);
-  	return [
-  	Math.ceil(R1 * limit),
-  	Math.ceil(G1 * limit),
-  	Math.ceil(B1 * limit)
-  	];
-  }
-  return ryb2rgb;
-})();
