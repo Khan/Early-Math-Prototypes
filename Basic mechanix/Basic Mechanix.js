@@ -37,6 +37,8 @@ touchCatchingLayer.frame = Layer.root.bounds
 const charLayerName = strCharLayer + numFirstCharLayer
 var charParentLayer = new Layer({name:"charParent"}) 
 var charLayer = new Layer({parent: charParentLayer, imageName: charLayerName})
+charLayer.origin = Point.zero
+charParentLayer.size = charLayer.size
 charParentLayer.x = 170
 charParentLayer.y = 555
 
@@ -56,21 +58,24 @@ var purpleBrick = new Brick({
 	cornerRadius: 4
 })
 
+let characterTargetX = charParentLayer.x
+let cameraOriginX = 0
+
 //setting up a basic tap to parallax test with basic touch handler
 touchCatchingLayer.touchBeganHandler = function(touchSequence) { 
- 
-	let i = 0;
-	for (let layerIndex in bgParentLayer.sublayers) {
-		const layer = bgParentLayer.sublayers[layerIndex]
-		layer.x = layer.x - (50*(i+1)); 
-		i++ 
-	}
-
-	purpleBrick.animateInNextBlock()
-
+	characterTargetX = touchSequence.currentSample.globalLocation.x
 }
 
-
+Layer.root.behaviors = [
+	new ActionBehavior({handler: () => {
+		const stepSize = 5
+		const dx = characterTargetX - charParentLayer.x
+		if (Math.abs(dx) > stepSize) {
+			charParentLayer.x += Math.sign(dx) * stepSize
+			charLayer.scaleX = dx > 0 ? 1 : -1
+		}
+	}})
+]
 
 //-------------------------------------------------
 // Bricks
