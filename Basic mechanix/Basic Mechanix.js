@@ -37,8 +37,8 @@ var charParentLayer = new Layer({name:"charParent", parent: foregroundLayer})
 var charLayer = new Layer({parent: charParentLayer, imageName: charLayerName})
 charLayer.origin = Point.zero
 charParentLayer.size = charLayer.size
-charParentLayer.x = 170
-charParentLayer.y = 555
+charParentLayer.x = 320
+charParentLayer.y = 650
 
 
 let characterTargetX = charParentLayer.x
