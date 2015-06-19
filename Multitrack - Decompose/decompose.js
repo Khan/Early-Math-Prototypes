@@ -314,28 +314,28 @@ function makeToolbox() {
 	allBricks.push(makeBricks({
 		color: blockColors.blue, 
 		origin: new Point({x: blueOriginX, y: blueOriginY}),
-		pitches: ["C", "D", "E", "F", "G", "A", "B", "C8", "C"],
+		pitches: ["C", "D", "E", "F"],
 		length: 4
 	}))
 
 	allBricks.push(makeBricks({
 		color: blockColors.blue, 
 		origin: new Point({x: blueOriginX + (blockSettings.size * 4) + 50, y: blueOriginY}),
-		pitches: ["C", "D", "E", "F", "G", "A", "B", "C8", "C"],
+		pitches: ["C", "E", "G", "C"],
 		length: 4
 	}))
 
 	allBricks.push(makeBricks({
 		color: blockColors.blue, 
 		origin: new Point({x: blueOriginX, y: blueOriginY + blockSettings.size + 20}),
-		pitches: ["C", "D", "E", "F", "G", "A", "B", "C8", "C"],
+		pitches: ["C", "D", "E", "F"],
 		length: 4
 	}))
 
 	allBricks.push(makeBricks({
 		color: blockColors.blue, 
 		origin: new Point({x: blueOriginX + (blockSettings.size * 4) + 50, y: blueOriginY + blockSettings.size + 20}),
-		pitches: ["C", "D", "E", "F", "G", "A", "B", "C8", "C"],
+		pitches: ["G", "F", "E", "C"],
 		length: 4
 	}))
 
