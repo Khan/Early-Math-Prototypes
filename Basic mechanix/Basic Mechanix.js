@@ -32,6 +32,9 @@ for (let i = numFirstBGLayer; i < numFirstBGLayer+numBGLayers; i++) {
 
 const foregroundLayer = bgParentLayer.sublayers[bgParentLayer.sublayers.length - 1]
 
+const xPositionIndicator = makeXPositionIndicator()
+xPositionIndicator.alpha =0 
+
 //set up initial character layer (no static animation yet. eventually: at least blinking!)
 const charLayerName = strCharLayer + "_" + pad(numFirstCharLayer, 2)
 var charParentLayer = new Layer({name:"charParent", parent: foregroundLayer}) 
@@ -51,6 +54,7 @@ Layer.root.touchBeganHandler = function(touchSequence) {
 	characterTargetX = touchSequence.currentSample.locationInLayer(charParentLayer.parent).x
 }
 
+let characterWalkingStopTime = undefined
 Layer.root.behaviors = [
 	new ActionBehavior({handler: () => {
 		// Camera and player movement!
@@ -100,12 +104,28 @@ Layer.root.behaviors = [
 
 			// Animate the character
 			numFirstCharLayer = (numFirstCharLayer + 1) % numCharFrames
+
+			characterWalkingStopTime = undefined
+			Layer.animate({duration: 0.3, curve: AnimationCurve.EaseOut, animations: () => {
+				xPositionIndicator.alpha = 0.7
+			}})
 		} else {
 			numFirstCharLayer = 0
+
+			if (characterWalkingStopTime === undefined) {
+				characterWalkingStopTime = Timestamp.currentTimestamp()
+			}
+
+			if (Timestamp.currentTimestamp() - characterWalkingStopTime > 0.7) {
+				Layer.animate({duration: 0.3, animations: () => {
+					xPositionIndicator.alpha = 0
+				}})
+			}
 		}
 
 		charLayer.image = new Image({name: strCharLayer + "_" + pad(numFirstCharLayer, 2)})
 
+		xPositionIndicator.setX(charParentLayer.x, charParentLayer.globalPosition.x)
 	}})
 ]
 
@@ -388,6 +408,53 @@ function Brick(args) {
 
 	container.becomeDraggable()
 
+}
+
+//-----------------------------------------
+// x position indicator
+//-----------------------------------------
+
+function makeXPositionIndicator() {
+	const container = new Layer()
+	container.width = Layer.root.width
+	container.origin = Point.zero
+
+	const line = new ShapeLayer.Line({
+		from: new Point({x: 0, y: 30}),
+		to: new Point({x: 200, y: 30}),
+		parent: container
+	})
+	line.strokeColor = Color.white
+	line.strokeWidth = 2
+
+	const dot = new ShapeLayer.Circle({
+		center: new Point({x: 200, y: 30}),
+		radius: 6,
+		parent: container
+	})
+	dot.strokeColor = undefined
+	dot.fillColor = Color.white
+
+	const label = new TextLayer({parent: container})
+	label.fontName = "Futura"
+	label.fontSize = 24
+	label.textColor = Color.white
+	label.x = dot.frameMaxX + 40
+	label.y = 12
+	label.text = "test"
+
+	container.setX = function(newGlobalX, newScreenX) {
+		let segments = line.segments
+		segments[1] = new Segment(new Point({x: newScreenX, y: line.segments[1].point.y}))
+		line.segments = segments
+
+		dot.x = newScreenX
+
+		label.text = newGlobalX.toString()
+		label.x = dot.frameMaxX + 40
+	}
+
+	return container
 }
 
 
