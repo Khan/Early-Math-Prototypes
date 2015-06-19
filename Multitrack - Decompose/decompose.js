@@ -45,20 +45,17 @@ var firstSlot = undefined
 
 var kittyTrack =  makeSoundtrackLayer({
 	name: "kitty",
-	blueSound: "cat_a",
-	orangeSound: "cat_b"
+	soundPrefix: "glock"
 })
 
 var beeTrack = makeSoundtrackLayer({
 	name: "bee",
-	blueSound: "dog_b",
-	orangeSound: "dog_e"
+	soundPrefix: "harp"
 })
 
 var dogTrack = makeSoundtrackLayer({
 	name: "dog",
-	blueSound: "dog_fsharp",
-	orangeSound: "dog_gsharp"
+	soundPrefix: "glock"
 })
 
 var trackLayers = [kittyTrack, beeTrack, dogTrack]
@@ -110,7 +107,8 @@ var blueOriginY = 0
 var exampleBrick = makeBricks({
 	color: blockColors.blue, 
 	origin: new Point({x: blueOriginX, y: blueOriginY}),
-	length: 1
+	length: 1,
+	pitches: ["C"]
 })
 
 allBricks.push(exampleBrick)
@@ -134,9 +132,6 @@ function makeSoundtrackLayer(args) {
 	layer.track = track
 	layer.imageLayer = imageLayer
 
-	var blueSound = new Sound({name: args.blueSound})
-	var orangeSound = new Sound({name: args.orangeSound})
-
 	layer.makeSlotsUnswell = function() {
 		track.makeSlotsUnswell()
 	}
@@ -146,11 +141,7 @@ function makeSoundtrackLayer(args) {
 	}
 
 	layer.playSoundForSlotAtIndex = function(index) {
-		if (track.slotAtIndex(index).block.name == "blue") {
-			blueSound.play()
-		} else {
-			orangeSound.play()
-		}
+		new Sound({name: args.soundPrefix + "_" + track.slotAtIndex(index).block.pitch}).play()
 	}
 
 	layer.updateSlotsFor = function(args) {
@@ -322,12 +313,14 @@ function makeToolbox() {
 	var blueOriginY = 560
 	allBricks.push(makeBricks({
 		color: blockColors.blue, 
-		origin: new Point({x: blueOriginX, y: blueOriginY})
+		origin: new Point({x: blueOriginX, y: blueOriginY}),
+		pitches: ["C", "D", "E", "F", "G", "A", "B", "C8", "C"]
 	}))
 
 	allBricks.push(makeBricks({
 		color: blockColors.orange, 
-		origin: new Point({x: blueOriginX, y: blueOriginY + blockSettings.size + 20})
+		origin: new Point({x: blueOriginX, y: blueOriginY + blockSettings.size + 20}),
+		pitches: ["C", "D", "E", "F", "G", "A", "B", "C8", "C"]
 	}))
 
 
@@ -477,6 +470,7 @@ function makeBricks(args) {
 	var color = args.color
 	var origin = args.origin
 	var length = args.length ? args.length : 9
+	var pitches = args.pitches
 
 	var brick = new Brick({
 		length: length,
@@ -490,6 +484,10 @@ function makeBricks(args) {
 
 
 	setupTouchForBrick(brick)
+
+	for (var blockIndex = 0; blockIndex < brick.blocks.length; blockIndex++) {
+		brick.blocks[blockIndex].pitch = pitches[blockIndex]
+	}
 
 
 	function setupTouchForBrick(brick) {
