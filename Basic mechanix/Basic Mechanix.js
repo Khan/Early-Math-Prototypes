@@ -13,8 +13,9 @@ We'll just focus on the forest for now.
 const strBgLayer = "trees"
 const numFirstBGLayer = 0
 const numBGLayers = 4
-const strCharLayer = "placeholderkid"
-const numFirstCharLayer = 0
+const strCharLayer = "lilperson"
+let numFirstCharLayer = 0
+const numCharFrames = 60
 const numCharLayers = 1;
 
 Layer.root.backgroundColor = new Color({hue: 0.52, saturation: 0.17, brightness: 0.94})
@@ -32,13 +33,13 @@ for (let i = numFirstBGLayer; i < numFirstBGLayer+numBGLayers; i++) {
 const foregroundLayer = bgParentLayer.sublayers[bgParentLayer.sublayers.length - 1]
 
 //set up initial character layer (no static animation yet. eventually: at least blinking!)
-const charLayerName = strCharLayer + numFirstCharLayer
+const charLayerName = strCharLayer + "_" + pad(numFirstCharLayer, 2)
 var charParentLayer = new Layer({name:"charParent", parent: foregroundLayer}) 
 var charLayer = new Layer({parent: charParentLayer, imageName: charLayerName})
 charLayer.origin = Point.zero
 charParentLayer.size = charLayer.size
 charParentLayer.x = 320
-charParentLayer.y = 650
+charParentLayer.y = 640
 
 
 let characterTargetX = charParentLayer.x
@@ -56,7 +57,7 @@ Layer.root.behaviors = [
 
 		const cameraEdgeFraction = 0.6 // in unit screen space, how far along the screen is the line where the camera moves at the same speed as the player?
 		const cameraEdgeSmoothingSizeFraction = 0.07 // in unit screen space, how wide is the region before cameraEdgeFraction where the camera accelerates?
-		const maximumStepSize = 4 // the maximum speed (pts/frame) at which the player can move
+		const maximumStepSize = 3 // the maximum speed (pts/frame) at which the player can move
 		const maximumCameraSpeed = maximumStepSize // pts/frame
 		const minimumCameraSpeed = 1 // pts/frame
 
@@ -96,7 +97,15 @@ Layer.root.behaviors = [
 			characterStepSize = clip({value: characterStepSize + Math.sign(dx), min: -maximumStepSize, max: maximumStepSize})
 			charParentLayer.x += characterStepSize
 			charLayer.scaleX = dx > 0 ? 1 : -1
+
+			// Animate the character
+			numFirstCharLayer = (numFirstCharLayer + 1) % numCharFrames
+		} else {
+			numFirstCharLayer = 0
 		}
+
+		charLayer.image = new Image({name: strCharLayer + "_" + pad(numFirstCharLayer, 2)})
+
 	}})
 ]
 
@@ -389,3 +398,9 @@ function log(obj) {
 	console.log(JSON.stringify(obj, null, 4))
 }
 
+// Shamelessly stolen from http://stackoverflow.com/a/10073788
+function pad(n, width, z) {
+  z = z || '0';
+  n = n + '';
+  return n.length >= width ? n : new Array(width - n.length + 1).join(z) + n;
+}
