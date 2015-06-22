@@ -17,6 +17,7 @@ const strCharLayer = "lilperson"
 let numFirstCharLayer = 0
 const numCharFrames = 60
 const numCharLayers = 1;
+const charInitialX = 320
 
 Layer.root.backgroundColor = new Color({hue: 0.52, saturation: 0.17, brightness: 0.94})
 
@@ -33,7 +34,7 @@ for (let i = numFirstBGLayer; i < numFirstBGLayer+numBGLayers; i++) {
 const foregroundLayer = bgParentLayer.sublayers[bgParentLayer.sublayers.length - 1]
 
 const xPositionIndicator = makeXPositionIndicator()
-xPositionIndicator.alpha =0 
+xPositionIndicator.alpha = 0
 
 //set up initial character layer (no static animation yet. eventually: at least blinking!)
 const charLayerName = strCharLayer + "_" + pad(numFirstCharLayer, 2)
@@ -41,7 +42,7 @@ var charParentLayer = new Layer({name:"charParent", parent: foregroundLayer})
 var charLayer = new Layer({parent: charParentLayer, imageName: charLayerName})
 charLayer.origin = Point.zero
 charParentLayer.size = charLayer.size
-charParentLayer.x = 320
+charParentLayer.x = charInitialX
 charParentLayer.y = 640
 
 
@@ -450,7 +451,7 @@ function makeXPositionIndicator() {
 
 		dot.x = newScreenX
 
-		label.text = newGlobalX.toString()
+		label.text = (Math.floor((newGlobalX - charInitialX) / 25)).toString()
 		label.x = dot.frameMaxX + 40
 	}
 
