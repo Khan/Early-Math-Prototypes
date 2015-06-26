@@ -29,7 +29,7 @@ var numbersToNumberLayers = {}
 var touchLayers = []
 
 var numbersToSounds = {}
-for (var i = 1; i <= 11; i++) {
+for (var i = 1; i <= 10; i++) {
 	numbersToSounds[i] = new Sound({name: i.toString()})
 }
 var lastNumberSpoken = undefined

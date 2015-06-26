@@ -1,0 +1,1 @@
+This prototype demonstrates a mechanic to group together quantities of blocks by drawing around them with your finger.

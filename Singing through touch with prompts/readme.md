@@ -1,0 +1,1 @@
+This prototype is similar to "Singing through touch using partners" but instead of tapping quantities, you must tap the correct number of fingers to the screen to match with the falling quantities.

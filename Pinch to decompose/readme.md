@@ -1,0 +1,1 @@
+This prototype demonstrates decomposing a brick by splitting it with two fingers.

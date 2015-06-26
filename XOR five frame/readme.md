@@ -1,0 +1,1 @@
+This prototype demonstrates using negative / ghost blocks to XOR out quantities to accomplish subtraction.

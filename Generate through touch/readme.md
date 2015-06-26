@@ -1,0 +1,1 @@
+This prototype demonstrates generating quantities by touching the screen.

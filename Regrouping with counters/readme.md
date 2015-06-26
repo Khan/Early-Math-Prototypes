@@ -1,0 +1,1 @@
+This prototype demonstrates how to regroup quantities while continuing to maintain an equation. In this case, the total of both sides is always 8.

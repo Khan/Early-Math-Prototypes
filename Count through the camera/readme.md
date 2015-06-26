@@ -1,0 +1,1 @@
+Tap objects you see with your iPad's camera to count them.

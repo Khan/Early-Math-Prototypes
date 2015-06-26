@@ -1,0 +1,1 @@
+This prototype is similar to the "Counting by touch count" demo but instead of simply reading out numbers, the numbers are sung in a scale.

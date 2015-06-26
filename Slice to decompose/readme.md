@@ -1,0 +1,1 @@
+This prototype lets you decompose a brick by activating the "scissors mode" and then tapping the brick where you'd like to split it.

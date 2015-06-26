@@ -1,0 +1,1 @@
+This prototype demonstrates sorting of various length blocks to form a staircase. In this example, the staircase could be used to overcome an obstacle (but only the reordering is demonstrated here).
