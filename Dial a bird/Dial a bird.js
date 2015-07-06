@@ -62,10 +62,6 @@ function makeDialsForUnits(unit /* 1, 10, 100, etc. */) {
 	}
 }
 
-var label = new TextLayer()
-label.fontName = "Futura"
-label.fontSize = 40
-label.position = Layer.root.position
 
 var birds = []
 
@@ -104,9 +100,6 @@ oneScroller.behaviors = [new ActionBehavior({handler: function() {
 	} else if (birds.length > clippedDigit) {
 		killBird()
 	}
-
-	
-	label.text = currentDigit.toString()
 }})]
 
 function makeScrollLayerDraggable(container, dragger) {
