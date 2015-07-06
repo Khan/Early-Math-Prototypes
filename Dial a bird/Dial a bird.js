@@ -13,6 +13,10 @@ var ones = makeDialsForUnits(1)
 ones.container.moveToCenterOfParentLayer()
 tens.container.moveToCenterOfParentLayer()
 tens.container.moveToLeftOfSiblingLayer({siblingLayer: ones.container})
+ones.container.x += 200
+ones.container.y += 200
+tens.container.x += 100
+tens.container.y = ones.container.y
 
 
 function makeDialsForUnits(unit /* 1, 10, 100, etc. */) {
@@ -42,6 +46,8 @@ function makeDialsForUnits(unit /* 1, 10, 100, etc. */) {
 		makeScrollNumbersForScrollLayer(scrollLayer, unit)
 		scrollLayer.updateScrollableSizeToFitSublayers()
 		makeScrollLayerLandEvenly(scrollLayer)
+
+		scrollLayer.userInteractionEnabled = (counter === 0)
 		
 		scrollLayers.push(scrollLayer)
 		
