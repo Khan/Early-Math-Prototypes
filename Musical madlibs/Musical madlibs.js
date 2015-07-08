@@ -22,31 +22,31 @@ var track2Revealed = false
 
 var track1 = makeTrack(openTrackLength, totalTrackLength)
 
-var track1Snippet1 = makeSnippet("3 Brick - orange - C E G", 3, ["cat_e", "cat_gsharp", "cat_b"], track1)
+var track1Snippet1 = makeSnippet("3 Brick - orange - C E G", 3, ["glock_C", "glock_E", "glock_G"], track1)
 track1Snippet1.layer.position = Layer.root.position
 
-var track1Snippet2 = makeSnippet("2 Brick - blue - E C", 2, ["dog_gsharp", "dog_e"], track1)
+var track1Snippet2 = makeSnippet("2 Brick - blue - E C", 2, ["harp_E", "harp_G"], track1)
 track1Snippet2.layer.position = Layer.root.position
 track1Snippet2.layer.y -= 150
 
 var track2 = makeTrack(openTrackLength, totalTrackLength)
 track2.layer.originY = Layer.root.frameMaxY
 
-var track2Snippet1 = makeSnippet("1 Brick - orange - C8", 1, ["cat_e8"], track2)
+var track2Snippet1 = makeSnippet("1 Brick - orange - C8", 1, ["glock_C8"], track2)
 track2Snippet1.layer.position = track1Snippet2.layer.position
 
-var track2Snippet2 = makeSnippet("2 Brick - orange - F E", 2, ["cat_a", "cat_gsharp"], track2)
+var track2Snippet2 = makeSnippet("2 Brick - orange - F E", 2, ["glock_F", "glock_E"], track2)
 track2Snippet2.layer.position = track1Snippet2.layer.position
 track2Snippet2.layer.x += 300
 
-var track2Snippet3 = makeSnippet("2 Brick - blue - C C", 2, ["dog_e", "dog_e"], track2)
+var track2Snippet3 = makeSnippet("2 Brick - blue - C C", 2, ["harp_C", "harp_C"], track2)
 track2Snippet3.layer.position = track1Snippet1.layer.position
 
-var track2Snippet4 = makeSnippet("2 Brick - blue - F E", 2, ["dog_a", "dog_gsharp"], track2)
+var track2Snippet4 = makeSnippet("2 Brick - blue - F E", 2, ["harp_F", "harp_E"], track2)
 track2Snippet4.layer.position = track1Snippet1.layer.position
 track2Snippet4.layer.x += 300
 
-var track2Snippet5 = makeSnippet("1 Brick - blue - G", 1, ["dog_b"], track2)
+var track2Snippet5 = makeSnippet("1 Brick - blue - G", 1, ["harp_G"], track2)
 track2Snippet5.layer.position = track2Snippet1.layer.position
 track2Snippet5.layer.x -= 250
 track2Snippet5.layer.y += 75
@@ -99,7 +99,8 @@ Layer.root.behaviors = [
 			})
 			if (!foundSound) {
 				if (beatIndexWithinTrack < openTrackLength) {
-					var sound = new Sound({name: "ta"})
+					var sound = new Sound({name: "tee"})
+					sound.volume = 0.15
 					sound.play()
 				}
 			}
